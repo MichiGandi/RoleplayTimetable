@@ -5,9 +5,15 @@ export interface Character {
   color: string
 }
 
+export interface Place {
+  id: string
+  name: string
+}
+
 export interface TimetableEvent {
   id: string
   characterId: string
+  placeId: string | null
   startTime: string  // "HH:MM"
   endTime: string    // "HH:MM"
   label: string
@@ -15,6 +21,7 @@ export interface TimetableEvent {
 
 export interface TimetableData {
   characters: Character[]
+  places: Place[]
   events: TimetableEvent[]
 }
 

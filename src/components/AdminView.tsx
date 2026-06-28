@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Character, TimetableEvent, TimetableData } from '../types'
+import { Character, Place, TimetableData } from '../types'
 import { generateId, randomColor } from '../utils/time'
 import { defaultData } from '../utils/defaultData'
 
@@ -8,25 +8,23 @@ interface Props {
   onChange: (data: TimetableData) => void
 }
 
-type AdminTab = 'characters' | 'events'
+type AdminTab = 'characters' | 'places'
 
 export default function AdminView({ data, onChange }: Props) {
   const [tab, setTab] = useState<AdminTab>('characters')
+
+  // Character state
   const [editingChar, setEditingChar] = useState<Character | null>(null)
-  const [editingEvent, setEditingEvent] = useState<TimetableEvent | null>(null)
   const [newChar, setNewChar] = useState<Omit<Character, 'id'>>({ name: '', role: '', color: randomColor() })
-  const [newEvent, setNewEvent] = useState<Omit<TimetableEvent, 'id'>>({
-    characterId: data.characters[0]?.id ?? '',
-    startTime: '15:00',
-    endTime: '16:00',
-    label: '',
-  })
+
+  // Place state
+  const [editingPlace, setEditingPlace] = useState<Place | null>(null)
+  const [newPlaceName, setNewPlaceName] = useState('')
 
   // --- Characters ---
   const addCharacter = () => {
     if (!newChar.name.trim()) return
-    const char: Character = { ...newChar, id: generateId() }
-    onChange({ ...data, characters: [...data.characters, char] })
+    onChange({ ...data, characters: [...data.characters, { ...newChar, id: generateId() }] })
     setNewChar({ name: '', role: '', color: randomColor() })
   }
 
@@ -38,38 +36,40 @@ export default function AdminView({ data, onChange }: Props) {
   const deleteCharacter = (id: string) => {
     if (!confirm('Delete this character and all their events?')) return
     onChange({
+      ...data,
       characters: data.characters.filter(c => c.id !== id),
       events: data.events.filter(e => e.characterId !== id),
     })
   }
 
-  // --- Events ---
-  const addEvent = () => {
-    if (!newEvent.label.trim() || !newEvent.characterId) return
-    const event: TimetableEvent = { ...newEvent, id: generateId() }
-    onChange({ ...data, events: [...data.events, event] })
-    setNewEvent({ characterId: data.characters[0]?.id ?? '', startTime: '15:00', endTime: '16:00', label: '' })
+  // --- Places ---
+  const addPlace = () => {
+    if (!newPlaceName.trim()) return
+    onChange({ ...data, places: [...data.places, { id: generateId(), name: newPlaceName.trim() }] })
+    setNewPlaceName('')
   }
 
-  const saveEvent = (event: TimetableEvent) => {
-    onChange({ ...data, events: data.events.map(e => e.id === event.id ? event : e) })
-    setEditingEvent(null)
+  const savePlace = (place: Place) => {
+    onChange({ ...data, places: data.places.map(p => p.id === place.id ? place : p) })
+    setEditingPlace(null)
   }
 
-  const deleteEvent = (id: string) => {
-    if (!confirm('Delete this event?')) return
-    onChange({ ...data, events: data.events.filter(e => e.id !== id) })
+  const deletePlace = (id: string) => {
+    if (!confirm('Delete this place? Events using it will have no place assigned.')) return
+    onChange({
+      ...data,
+      places: data.places.filter(p => p.id !== id),
+      events: data.events.map(e => e.placeId === id ? { ...e, placeId: null } : e),
+    })
   }
 
   const resetToDefault = () => {
-    if (!confirm('Reset everything to the default timetable data? This cannot be undone.')) return
+    if (!confirm('Reset everything to the default timetable? This cannot be undone.')) return
     onChange(defaultData)
   }
 
-  const charById = (id: string) => data.characters.find(c => c.id === id)
-
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <div className="max-w-2xl mx-auto px-4 py-6">
       <div className="flex gap-2 mb-6">
         <button
           onClick={() => setTab('characters')}
@@ -80,12 +80,12 @@ export default function AdminView({ data, onChange }: Props) {
           Characters ({data.characters.length})
         </button>
         <button
-          onClick={() => setTab('events')}
+          onClick={() => setTab('places')}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            tab === 'events' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            tab === 'places' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
-          Events ({data.events.length})
+          Places ({data.places.length})
         </button>
         <button
           onClick={resetToDefault}
@@ -95,9 +95,9 @@ export default function AdminView({ data, onChange }: Props) {
         </button>
       </div>
 
+      {/* Characters tab */}
       {tab === 'characters' && (
         <div className="space-y-3">
-          {/* Add new character */}
           <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Add character</p>
             <div className="flex gap-2 flex-wrap">
@@ -130,7 +130,6 @@ export default function AdminView({ data, onChange }: Props) {
             </div>
           </div>
 
-          {/* Character list */}
           {data.characters.map(char => (
             <div key={char.id} className="border border-gray-200 rounded-xl p-4">
               {editingChar?.id === char.id ? (
@@ -171,42 +170,21 @@ export default function AdminView({ data, onChange }: Props) {
         </div>
       )}
 
-      {tab === 'events' && (
+      {/* Places tab */}
+      {tab === 'places' && (
         <div className="space-y-3">
-          {/* Add new event */}
           <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Add event</p>
-            <div className="flex gap-2 flex-wrap">
-              <select
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                value={newEvent.characterId}
-                onChange={e => setNewEvent({ ...newEvent, characterId: e.target.value })}
-              >
-                {data.characters.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Add place</p>
+            <div className="flex gap-2">
               <input
-                type="time"
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                value={newEvent.startTime}
-                onChange={e => setNewEvent({ ...newEvent, startTime: e.target.value })}
-              />
-              <input
-                type="time"
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                value={newEvent.endTime}
-                onChange={e => setNewEvent({ ...newEvent, endTime: e.target.value })}
-              />
-              <input
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1 min-w-[160px]"
-                placeholder="Activity label"
-                value={newEvent.label}
-                onChange={e => setNewEvent({ ...newEvent, label: e.target.value })}
-                onKeyDown={e => e.key === 'Enter' && addEvent()}
+                className="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1"
+                placeholder="Place name"
+                value={newPlaceName}
+                onChange={e => setNewPlaceName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addPlace()}
               />
               <button
-                onClick={addEvent}
+                onClick={addPlace}
                 className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
               >
                 Add
@@ -214,46 +192,32 @@ export default function AdminView({ data, onChange }: Props) {
             </div>
           </div>
 
-          {/* Event list */}
-          {[...data.events]
-            .sort((a, b) => a.startTime.localeCompare(b.startTime))
-            .map(event => {
-              const char = charById(event.characterId)
-              return (
-                <div key={event.id} className="border border-gray-200 rounded-xl p-4">
-                  {editingEvent?.id === event.id ? (
-                    <div className="flex gap-2 flex-wrap">
-                      <select
-                        className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                        value={editingEvent.characterId}
-                        onChange={e => setEditingEvent({ ...editingEvent, characterId: e.target.value })}
-                      >
-                        {data.characters.map(c => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
-                      <input type="time" className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                        value={editingEvent.startTime} onChange={e => setEditingEvent({ ...editingEvent, startTime: e.target.value })} />
-                      <input type="time" className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                        value={editingEvent.endTime} onChange={e => setEditingEvent({ ...editingEvent, endTime: e.target.value })} />
-                      <input className="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1 min-w-[160px]"
-                        value={editingEvent.label} onChange={e => setEditingEvent({ ...editingEvent, label: e.target.value })} />
-                      <button onClick={() => saveEvent(editingEvent)} className="bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700">Save</button>
-                      <button onClick={() => setEditingEvent(null)} className="bg-gray-100 text-gray-600 px-3 py-2 rounded-lg text-sm hover:bg-gray-200">Cancel</button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      {char && <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: char.color }} />}
-                      <span className="text-xs font-mono text-gray-500 whitespace-nowrap">{event.startTime}–{event.endTime}</span>
-                      <span className="text-sm font-medium text-gray-800 flex-1">{event.label}</span>
-                      <span className="text-xs text-gray-400">{char?.name}</span>
-                      <button onClick={() => setEditingEvent(event)} className="text-xs text-blue-500 hover:text-blue-700 px-2 py-1">Edit</button>
-                      <button onClick={() => deleteEvent(event.id)} className="text-xs text-red-400 hover:text-red-600 px-2 py-1">Delete</button>
-                    </div>
-                  )}
+          {data.places.map(place => (
+            <div key={place.id} className="border border-gray-200 rounded-xl p-4">
+              {editingPlace?.id === place.id ? (
+                <div className="flex gap-2">
+                  <input
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1"
+                    value={editingPlace.name}
+                    onChange={e => setEditingPlace({ ...editingPlace, name: e.target.value })}
+                    onKeyDown={e => e.key === 'Enter' && savePlace(editingPlace)}
+                  />
+                  <button onClick={() => savePlace(editingPlace)} className="bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700">Save</button>
+                  <button onClick={() => setEditingPlace(null)} className="bg-gray-100 text-gray-600 px-3 py-2 rounded-lg text-sm hover:bg-gray-200">Cancel</button>
                 </div>
-              )
-            })}
+              ) : (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-500">📍</span>
+                  <span className="flex-1 text-sm font-medium text-gray-800">{place.name}</span>
+                  <span className="text-xs text-gray-400">
+                    {data.events.filter(e => e.placeId === place.id).length} events
+                  </span>
+                  <button onClick={() => setEditingPlace(place)} className="text-xs text-blue-500 hover:text-blue-700 px-2 py-1">Edit</button>
+                  <button onClick={() => deletePlace(place.id)} className="text-xs text-red-400 hover:text-red-600 px-2 py-1">Delete</button>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>
