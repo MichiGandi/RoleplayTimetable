@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { Character, TimetableEvent, Place, TimetableData } from '../types'
 import { generateTimeSlots, isEventAtTime, timeToMinutes, minutesToTime } from '../utils/time'
 import EventModal from './EventModal'
@@ -11,12 +11,6 @@ interface Props {
   onChange: (data: Partial<TimetableData>) => void
 }
 
-interface CellInfo {
-  event: TimetableEvent
-  character: Character
-  rowSpan: number
-}
-
 interface ModalState {
   character: Character
   event: TimetableEvent | null
@@ -24,46 +18,86 @@ interface ModalState {
   prefillEnd: string
 }
 
+interface DragState {
+  character: Character
+  startSlot: string
+  currentSlot: string
+}
+
 const SLOT_STEP = 10
+const ROW_H = 28 // px per slot row
+
+function getDragRange(d: DragState) {
+  const a = timeToMinutes(d.startSlot)
+  const b = timeToMinutes(d.currentSlot)
+  return {
+    start: minutesToTime(Math.min(a, b)),
+    end: minutesToTime(Math.max(a, b) + SLOT_STEP),
+  }
+}
 
 export default function TimetableView({ characters, events, places, isEditMode, onChange }: Props) {
   const [activeTime, setActiveTime] = useState<string | null>(null)
   const [modal, setModal] = useState<ModalState | null>(null)
+  const [drag, setDrag] = useState<DragState | null>(null)
+  const dragRef = useRef<DragState | null>(null)
 
   const allTimes = events.flatMap(e => [e.startTime, e.endTime])
   const minTime = allTimes.length ? allTimes.reduce((a, b) => timeToMinutes(a) < timeToMinutes(b) ? a : b) : '15:00'
   const maxTime = allTimes.length ? allTimes.reduce((a, b) => timeToMinutes(a) > timeToMinutes(b) ? a : b) : '19:00'
   const slots = generateTimeSlots(minTime, maxTime)
 
-  // Build cell map: slot -> characterId -> CellInfo | 'continued'
-  const cellMap = new Map<string, Map<string, CellInfo | 'continued'>>()
-  for (const slot of slots) {
-    const row = new Map<string, CellInfo | 'continued'>()
-    for (const char of characters) {
-      const event = events.find(e => e.characterId === char.id && isEventAtTime(e.startTime, e.endTime, slot))
-      if (event) {
-        if (event.startTime === slot) {
-          const rowSpan = Math.ceil((timeToMinutes(event.endTime) - timeToMinutes(event.startTime)) / SLOT_STEP)
-          row.set(char.id, { event, character: char, rowSpan })
-        } else {
-          row.set(char.id, 'continued')
-        }
-      }
-      // if nothing: cell is absent → render empty td
-    }
-    cellMap.set(slot, row)
-  }
-
-  // Highlight logic
+  // View mode highlight
   const activeEvents = activeTime ? events.filter(e => isEventAtTime(e.startTime, e.endTime, activeTime)) : []
   const highlightedEventIds = new Set(activeEvents.map(e => e.id))
   const highlightedSlots = activeTime
     ? new Set(slots.filter(slot => activeEvents.some(e => isEventAtTime(e.startTime, e.endTime, slot))))
     : null
-
   const isSlotHighlighted = (slot: string) => !activeTime || (highlightedSlots?.has(slot) ?? false)
 
-  // Click on an existing event cell
+  const isInDrag = (charId: string, slot: string): boolean => {
+    if (!drag || drag.character.id !== charId) return false
+    const { start, end } = getDragRange(drag)
+    const t = timeToMinutes(slot)
+    return t >= timeToMinutes(start) && t < timeToMinutes(end)
+  }
+
+  // Global mouseup
+  useEffect(() => {
+    if (!isEditMode) return
+    const handleGlobalMouseUp = () => {
+      const d = dragRef.current
+      if (!d) return
+      const isRealDrag = d.startSlot !== d.currentSlot
+      const { start, end } = getDragRange(d)
+      dragRef.current = null
+      setDrag(null)
+      setModal({
+        character: d.character,
+        event: null,
+        prefillStart: isRealDrag ? start : d.startSlot,
+        prefillEnd: isRealDrag ? end : minutesToTime(timeToMinutes(d.startSlot) + 30),
+      })
+    }
+    window.addEventListener('mouseup', handleGlobalMouseUp)
+    return () => window.removeEventListener('mouseup', handleGlobalMouseUp)
+  }, [isEditMode])
+
+  const handleCellMouseDown = useCallback((char: Character, slot: string) => {
+    if (!isEditMode) return
+    const state = { character: char, startSlot: slot, currentSlot: slot }
+    dragRef.current = state
+    setDrag(state)
+  }, [isEditMode])
+
+  const handleCellMouseEnter = useCallback((char: Character, slot: string) => {
+    const d = dragRef.current
+    if (!d || d.character.id !== char.id) return
+    const updated = { ...d, currentSlot: slot }
+    dragRef.current = updated
+    setDrag(updated)
+  }, [])
+
   const handleEventClick = useCallback((e: React.MouseEvent, event: TimetableEvent, character: Character) => {
     if (isEditMode) {
       e.stopPropagation()
@@ -73,18 +107,9 @@ export default function TimetableView({ characters, events, places, isEditMode, 
     }
   }, [isEditMode])
 
-  // Click on an empty cell
-  const handleEmptyClick = useCallback((character: Character, slot: string) => {
-    if (!isEditMode) return
-    const prefillEnd = minutesToTime(timeToMinutes(slot) + 30)
-    setModal({ character, event: null, prefillStart: slot, prefillEnd })
-  }, [isEditMode])
-
   const handleSave = (event: TimetableEvent) => {
     const exists = events.find(e => e.id === event.id)
-    const updated = exists
-      ? events.map(e => e.id === event.id ? event : e)
-      : [...events, event]
+    const updated = exists ? events.map(e => e.id === event.id ? event : e) : [...events, event]
     onChange({ events: updated })
   }
 
@@ -94,87 +119,119 @@ export default function TimetableView({ characters, events, places, isEditMode, 
 
   const placeById = (id: string | null) => places.find(p => p.id === id)
 
+  const totalHeight = slots.length * ROW_H
+
   return (
     <div className="overflow-x-auto">
-      {/* Highlight banner (view mode) */}
       {activeTime && !isEditMode && (
         <div className="mb-3 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 flex items-center justify-between">
           <span>Showing all events active at <strong>{activeTime}</strong></span>
-          <button onClick={() => setActiveTime(null)} className="text-blue-500 hover:text-blue-700 font-medium ml-4">
-            Clear ×
-          </button>
+          <button onClick={() => setActiveTime(null)} className="text-blue-500 hover:text-blue-700 font-medium ml-4">Clear ×</button>
         </div>
       )}
-
-      {/* Edit mode hint */}
       {isEditMode && (
         <div className="mb-3 px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
-          Click any event to edit it, or click an empty cell to create a new event.
+          Click an event to edit · Drag over empty cells to create a new event
         </div>
       )}
 
-      <table className="border-collapse text-xs w-full min-w-max">
-        <thead>
-          <tr>
-            <th className="bg-gray-100 border border-gray-200 px-2 py-2 text-gray-500 font-medium text-right w-14 sticky left-0 z-10">
-              Zeit
-            </th>
-            {characters.map(char => (
-              <th
-                key={char.id}
-                className="border border-gray-200 px-2 py-2 text-center font-medium text-gray-700 min-w-[80px] max-w-[110px]"
+      {/* Layout: fixed time column on the left, then one column per character */}
+      <div className="flex select-none">
+
+        {/* Time column */}
+        <div className="flex-shrink-0 w-14 border-r border-gray-200">
+          {/* Header */}
+          <div className="h-14 bg-gray-100 border-b border-gray-200 flex items-center justify-end pr-2">
+            <span className="text-[10px] text-gray-500 font-medium">Zeit</span>
+          </div>
+          {/* Slots */}
+          {slots.map(slot => (
+            <div
+              key={slot}
+              className="border-b border-gray-100 flex items-center justify-end pr-2"
+              style={{ height: ROW_H }}
+            >
+              <span className="text-[10px] font-mono text-gray-400">{slot}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Character columns */}
+        {characters.map(char => {
+          // Events for this character, sorted by start
+          const charEvents = events
+            .filter(e => e.characterId === char.id)
+            .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime))
+
+          return (
+            <div
+              key={char.id}
+              className="flex-shrink-0 border-r border-gray-200"
+              style={{ width: 110 }}
+            >
+              {/* Header */}
+              <div
+                className="h-14 border-b border-gray-200 flex flex-col items-center justify-center px-1 text-center"
                 style={{ borderTop: `3px solid ${char.color}` }}
               >
-                <div className="font-semibold leading-tight">{char.name}</div>
-                {char.role && <div className="text-gray-400 font-normal text-[10px] mt-0.5">{char.role}</div>}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {slots.map(slot => {
-            const row = cellMap.get(slot)!
-            const highlighted = isSlotHighlighted(slot)
+                <span className="text-[11px] font-semibold text-gray-800 leading-tight">{char.name}</span>
+                {char.role && <span className="text-[10px] text-gray-400 mt-0.5">{char.role}</span>}
+              </div>
 
-            return (
-              <tr key={slot} className={highlighted ? '' : 'opacity-20'}>
-                <td className="bg-gray-50 border border-gray-200 px-2 py-0.5 text-right text-gray-400 font-mono text-[10px] sticky left-0 z-10 whitespace-nowrap">
-                  {slot}
-                </td>
-                {characters.map(char => {
-                  const cell = row?.get(char.id)
+              {/* Body — relative container, slots as background grid, events absolutely placed */}
+              <div className="relative" style={{ height: totalHeight }}>
 
-                  // Continued (covered by a rowspan above) — skip rendering
-                  if (cell === 'continued') return null
+                {/* Background grid — one div per slot for hover/drag */}
+                {slots.map((slot, slotIdx) => {
+                  const inDrag = isInDrag(char.id, slot)
+                  const highlighted = isSlotHighlighted(slot)
+                  // Is this slot occupied by an event?
+                  const occupied = events.some(e => e.characterId === char.id && isEventAtTime(e.startTime, e.endTime, slot))
 
-                  // Empty cell
-                  if (!cell) {
-                    return (
-                      <td
-                        key={char.id}
-                        className={`border border-gray-100 h-6 ${isEditMode ? 'cursor-pointer hover:bg-gray-50' : ''}`}
-                        onClick={() => handleEmptyClick(char, slot)}
-                      />
-                    )
-                  }
+                  return (
+                    <div
+                      key={slot}
+                      className={`absolute left-0 right-0 border-b transition-colors ${
+                        isEditMode && !occupied ? 'cursor-ns-resize' : ''
+                      } ${highlighted ? '' : 'opacity-20'}`}
+                      style={{
+                        top: slotIdx * ROW_H,
+                        height: ROW_H,
+                        borderColor: '#f3f4f6',
+                        backgroundColor: inDrag ? `${char.color}35` : undefined,
+                        borderBottomColor: inDrag ? char.color : undefined,
+                        zIndex: 0,
+                      }}
+                      onMouseDown={() => !occupied && handleCellMouseDown(char, slot)}
+                      onMouseEnter={() => !occupied && handleCellMouseEnter(char, slot)}
+                    />
+                  )
+                })}
 
-                  // Event cell
-                  const { event, character, rowSpan } = cell
+                {/* Event blocks — absolutely positioned */}
+                {charEvents.map(event => {
+                  const startMin = timeToMinutes(event.startTime)
+                  const endMin = timeToMinutes(event.endTime)
+                  const gridStart = timeToMinutes(slots[0])
+                  const topPx = (startMin - gridStart) / SLOT_STEP * ROW_H
+                  const heightPx = (endMin - startMin) / SLOT_STEP * ROW_H
                   const isHighlighted = highlightedEventIds.has(event.id)
                   const place = placeById(event.placeId)
 
                   return (
-                    <td
-                      key={char.id}
-                      rowSpan={rowSpan}
-                      onClick={e => handleEventClick(e, event, character)}
-                      className="border border-white cursor-pointer transition-all duration-100 align-top p-1 leading-tight"
+                    <div
+                      key={event.id}
+                      onClick={e => handleEventClick(e, event, char)}
+                      className="absolute left-0 right-0 cursor-pointer overflow-hidden p-1 leading-tight"
                       style={{
-                        backgroundColor: character.color,
-                        filter: isHighlighted && activeTime ? 'brightness(1.1)' : undefined,
-                        outline: isHighlighted && activeTime ? `2px solid ${character.color}` : undefined,
+                        top: topPx + 1,
+                        height: heightPx - 2,
+                        backgroundColor: char.color,
+                        opacity: isEditMode ? 0.9 : 1,
+                        zIndex: 10,
+                        outline: isHighlighted && activeTime ? `2px solid ${char.color}` : undefined,
                         outlineOffset: '-2px',
-                        opacity: isEditMode ? 0.9 : undefined,
+                        filter: isHighlighted && activeTime ? 'brightness(1.1)' : undefined,
                       }}
                     >
                       <span className="text-white text-[10px] font-medium drop-shadow-sm leading-snug block">
@@ -188,14 +245,14 @@ export default function TimetableView({ characters, events, places, isEditMode, 
                       <span className="text-white/60 text-[9px] block mt-0.5">
                         {event.startTime}–{event.endTime}
                       </span>
-                    </td>
+                    </div>
                   )
                 })}
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+              </div>
+            </div>
+          )
+        })}
+      </div>
 
       {!activeTime && !isEditMode && (
         <p className="text-xs text-gray-400 mt-3 text-center">
