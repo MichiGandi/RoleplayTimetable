@@ -11,10 +11,10 @@ export function minutesToTime(minutes: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
-// Generate time slots every 10 minutes between start and end
+// Generate time slots every 10 minutes, snapped to clean 10-minute boundaries
 export function generateTimeSlots(startTime: string, endTime: string): string[] {
-  const start = timeToMinutes(startTime)
-  const end = timeToMinutes(endTime)
+  const start = Math.floor(timeToMinutes(startTime) / 10) * 10
+  const end = Math.ceil(timeToMinutes(endTime) / 10) * 10
   const slots: string[] = []
   for (let t = start; t <= end; t += 10) {
     slots.push(minutesToTime(t))
