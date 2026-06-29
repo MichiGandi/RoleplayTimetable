@@ -106,7 +106,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
         character: d.character,
         event: null,
         prefillStart: isRealDrag ? start : d.startSlot,
-        prefillEnd: isRealDrag ? end : minutesToTime(timeToMinutes(d.startSlot) + 30),
+        prefillEnd: isRealDrag ? end : minutesToTime(timeToMinutes(d.startSlot) + SLOT_STEP),
       })
     }
     window.addEventListener('mouseup', handleGlobalMouseUp)
@@ -299,6 +299,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
           places={places}
           prefillStart={modal.prefillStart}
           prefillEnd={modal.prefillEnd}
+          allEvents={events}
           onSave={handleSave}
           onDelete={modal.event ? handleDelete : undefined}
           onClose={() => setModal(null)}

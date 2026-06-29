@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { TimetableEvent, Character, Place } from '../types'
-import { generateId } from '../utils/time'
+import { generateId, timeToMinutes, minutesToTime } from '../utils/time'
 
 interface Props {
   event: TimetableEvent | null        // null = create new
   character: Character
   places: Place[]
+  allEvents: TimetableEvent[]         // all events for overlap detection
   prefillStart?: string
   prefillEnd?: string
   onSave: (event: TimetableEvent) => void
@@ -13,31 +14,59 @@ interface Props {
   onClose: () => void
 }
 
+const SLOT_STEP = 10
+
+function hasOverlap(
+  start: string,
+  end: string,
+  characterId: string,
+  allEvents: TimetableEvent[],
+  excludeId?: string
+): TimetableEvent | null {
+  const s = timeToMinutes(start)
+  const e = timeToMinutes(end)
+  if (e <= s) return null
+  return allEvents.find(ev => {
+    if (ev.characterId !== characterId) return false
+    if (ev.id === excludeId) return false
+    const es = timeToMinutes(ev.startTime)
+    const ee = timeToMinutes(ev.endTime)
+    return s < ee && e > es
+  }) ?? null
+}
+
 export default function EventModal({
   event,
   character,
   places,
+  allEvents,
   prefillStart = '15:00',
-  prefillEnd = '15:30',
+  prefillEnd,
   onSave,
   onDelete,
   onClose,
 }: Props) {
+  // Default end = start + 1 slot (10 min)
+  const defaultEnd = prefillEnd ?? minutesToTime(timeToMinutes(prefillStart) + SLOT_STEP)
+
   const [label, setLabel] = useState(event?.label ?? '')
   const [startTime, setStartTime] = useState(event?.startTime ?? prefillStart)
-  const [endTime, setEndTime] = useState(event?.endTime ?? prefillEnd)
+  const [endTime, setEndTime] = useState(event?.endTime ?? defaultEnd)
   const [placeId, setPlaceId] = useState<string>(event?.placeId ?? '')
 
+  // Recompute overlap whenever times change
+  const overlap = hasOverlap(startTime, endTime, character.id, allEvents, event?.id)
+  const endBeforeStart = timeToMinutes(endTime) <= timeToMinutes(startTime)
+  const canSave = label.trim().length > 0 && !endBeforeStart
+
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [onClose])
 
   const handleSave = () => {
-    if (!label.trim()) return
+    if (!canSave) return
     onSave({
       id: event?.id ?? generateId(),
       characterId: character.id,
@@ -66,23 +95,12 @@ export default function EventModal({
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden">
         {/* Header */}
         <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
-          <div
-            className="w-3 h-3 rounded-full flex-shrink-0"
-            style={{ backgroundColor: character.color }}
-          />
+          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: character.color }} />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-gray-800 truncate">{character.name}</p>
-            {character.role && (
-              <p className="text-xs text-gray-400">{character.role}</p>
-            )}
+            {character.role && <p className="text-xs text-gray-400">{character.role}</p>}
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-lg leading-none px-1"
-            aria-label="Close"
-          >
-            ×
-          </button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none px-1" aria-label="Close">×</button>
         </div>
 
         {/* Form */}
@@ -104,7 +122,9 @@ export default function EventModal({
               <label className="block text-xs font-medium text-gray-500 mb-1">Start</label>
               <input
                 type="time"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 ${
+                  endBeforeStart ? 'border-red-300 focus:border-red-400' : 'border-gray-200 focus:border-blue-400'
+                }`}
                 value={startTime}
                 onChange={e => setStartTime(e.target.value)}
               />
@@ -113,12 +133,28 @@ export default function EventModal({
               <label className="block text-xs font-medium text-gray-500 mb-1">End</label>
               <input
                 type="time"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 ${
+                  endBeforeStart ? 'border-red-300 focus:border-red-400' : 'border-gray-200 focus:border-blue-400'
+                }`}
                 value={endTime}
                 onChange={e => setEndTime(e.target.value)}
               />
             </div>
           </div>
+
+          {/* Warnings */}
+          {endBeforeStart && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">
+              <span>⚠️</span>
+              <span>End time must be after start time.</span>
+            </div>
+          )}
+          {!endBeforeStart && overlap && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+              <span>⚠️</span>
+              <span>Overlaps with <strong>{overlap.label}</strong> ({overlap.startTime}–{overlap.endTime})</span>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">Place</label>
@@ -138,23 +174,17 @@ export default function EventModal({
         {/* Actions */}
         <div className="px-5 py-4 border-t border-gray-100 flex items-center gap-2">
           {event && onDelete && (
-            <button
-              onClick={handleDelete}
-              className="text-xs text-red-400 hover:text-red-600 px-2 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
-            >
+            <button onClick={handleDelete} className="text-xs text-red-400 hover:text-red-600 px-2 py-1.5 rounded-lg hover:bg-red-50 transition-colors">
               Delete
             </button>
           )}
           <div className="flex-1" />
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-100 transition-colors"
-          >
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-100 transition-colors">
             Cancel
           </button>
           <button
             onClick={handleSave}
-            disabled={!label.trim()}
+            disabled={!canSave}
             className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {event ? 'Save' : 'Create'}
