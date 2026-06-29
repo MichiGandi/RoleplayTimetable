@@ -150,6 +150,10 @@ export default function TimetableView({ characters, events, places, isEditMode, 
   }
 
   const placeById = (id: string | null) => places.find(p => p.id === id)
+  const eventColor = (event: TimetableEvent) => {
+    const place = placeById(event.placeId)
+    return place?.color ?? '#9E9E9E'
+  }
 
   const totalHeight = slots.length * ROW_H
 
@@ -204,7 +208,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
               {/* Header */}
               <div
                 className="h-14 border-b border-gray-200 flex flex-col items-center justify-center px-1 text-center"
-                style={{ borderTop: `3px solid ${char.color}` }}
+                style={{ borderTop: '3px solid #e5e7eb' }}
               >
                 <span className="text-[11px] font-semibold text-gray-800 leading-tight">{char.name}</span>
                 {char.role && <span className="text-[10px] text-gray-400 mt-0.5">{char.role}</span>}
@@ -230,8 +234,8 @@ export default function TimetableView({ characters, events, places, isEditMode, 
                         top: slotIdx * ROW_H,
                         height: ROW_H,
                         borderColor: '#f3f4f6',
-                        backgroundColor: inDrag ? `${char.color}35` : undefined,
-                        borderBottomColor: inDrag ? char.color : undefined,
+                        backgroundColor: inDrag ? '#9E9E9E35' : undefined,
+                        borderBottomColor: inDrag ? '#9E9E9E' : undefined,
                         zIndex: 0,
                       }}
                       onMouseDown={() => !occupied && handleCellMouseDown(char, slot)}
@@ -258,10 +262,10 @@ export default function TimetableView({ characters, events, places, isEditMode, 
                       style={{
                         top: topPx + 1,
                         height: heightPx - 2,
-                        backgroundColor: char.color,
+                        backgroundColor: eventColor(event),
                         opacity: isEditMode ? 0.9 : 1,
                         zIndex: 10,
-                        outline: isHighlighted && activeTime ? `2px solid ${char.color}` : undefined,
+                        outline: isHighlighted && activeTime ? `2px solid ${eventColor(event)}` : undefined,
                         outlineOffset: '-2px',
                         filter: isHighlighted && activeTime ? 'brightness(1.1)' : undefined,
                       }}

@@ -13,19 +13,16 @@ type AdminTab = 'characters' | 'places'
 export default function AdminView({ data, onChange }: Props) {
   const [tab, setTab] = useState<AdminTab>('characters')
 
-  // Character state
   const [editingChar, setEditingChar] = useState<Character | null>(null)
-  const [newChar, setNewChar] = useState<Omit<Character, 'id'>>({ name: '', role: '', color: randomColor() })
+  const [newChar, setNewChar] = useState<Omit<Character, 'id'>>({ name: '', role: '' })
 
-  // Place state
   const [editingPlace, setEditingPlace] = useState<Place | null>(null)
-  const [newPlaceName, setNewPlaceName] = useState('')
+  const [newPlace, setNewPlace] = useState<Omit<Place, 'id'>>({ name: '', color: randomColor() })
 
-  // --- Characters ---
   const addCharacter = () => {
     if (!newChar.name.trim()) return
     onChange({ ...data, characters: [...data.characters, { ...newChar, id: generateId() }] })
-    setNewChar({ name: '', role: '', color: randomColor() })
+    setNewChar({ name: '', role: '' })
   }
 
   const saveCharacter = (char: Character) => {
@@ -42,11 +39,10 @@ export default function AdminView({ data, onChange }: Props) {
     })
   }
 
-  // --- Places ---
   const addPlace = () => {
-    if (!newPlaceName.trim()) return
-    onChange({ ...data, places: [...data.places, { id: generateId(), name: newPlaceName.trim() }] })
-    setNewPlaceName('')
+    if (!newPlace.name.trim()) return
+    onChange({ ...data, places: [...data.places, { ...newPlace, id: generateId() }] })
+    setNewPlace({ name: '', color: randomColor() })
   }
 
   const savePlace = (place: Place) => {
@@ -115,12 +111,6 @@ export default function AdminView({ data, onChange }: Props) {
                 onChange={e => setNewChar({ ...newChar, role: e.target.value })}
                 onKeyDown={e => e.key === 'Enter' && addCharacter()}
               />
-              <input
-                type="color"
-                className="border border-gray-200 rounded-lg h-[38px] w-12 cursor-pointer"
-                value={newChar.color}
-                onChange={e => setNewChar({ ...newChar, color: e.target.value })}
-              />
               <button
                 onClick={addCharacter}
                 className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
@@ -144,18 +134,11 @@ export default function AdminView({ data, onChange }: Props) {
                     value={editingChar.role}
                     onChange={e => setEditingChar({ ...editingChar, role: e.target.value })}
                   />
-                  <input
-                    type="color"
-                    className="border border-gray-200 rounded-lg h-[38px] w-12 cursor-pointer"
-                    value={editingChar.color}
-                    onChange={e => setEditingChar({ ...editingChar, color: e.target.value })}
-                  />
                   <button onClick={() => saveCharacter(editingChar)} className="bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700">Save</button>
                   <button onClick={() => setEditingChar(null)} className="bg-gray-100 text-gray-600 px-3 py-2 rounded-lg text-sm hover:bg-gray-200">Cancel</button>
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
-                  <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: char.color }} />
                   <div className="flex-1">
                     <span className="font-medium text-sm text-gray-800">{char.name}</span>
                     {char.role && <span className="text-gray-400 text-sm ml-2">— {char.role}</span>}
@@ -175,13 +158,19 @@ export default function AdminView({ data, onChange }: Props) {
         <div className="space-y-3">
           <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Add place</p>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <input
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1"
+                className="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1 min-w-[160px]"
                 placeholder="Place name"
-                value={newPlaceName}
-                onChange={e => setNewPlaceName(e.target.value)}
+                value={newPlace.name}
+                onChange={e => setNewPlace({ ...newPlace, name: e.target.value })}
                 onKeyDown={e => e.key === 'Enter' && addPlace()}
+              />
+              <input
+                type="color"
+                className="border border-gray-200 rounded-lg h-[38px] w-12 cursor-pointer"
+                value={newPlace.color}
+                onChange={e => setNewPlace({ ...newPlace, color: e.target.value })}
               />
               <button
                 onClick={addPlace}
@@ -195,23 +184,27 @@ export default function AdminView({ data, onChange }: Props) {
           {data.places.map(place => (
             <div key={place.id} className="border border-gray-200 rounded-xl p-4">
               {editingPlace?.id === place.id ? (
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <input
                     className="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1"
                     value={editingPlace.name}
                     onChange={e => setEditingPlace({ ...editingPlace, name: e.target.value })}
                     onKeyDown={e => e.key === 'Enter' && savePlace(editingPlace)}
                   />
+                  <input
+                    type="color"
+                    className="border border-gray-200 rounded-lg h-[38px] w-12 cursor-pointer"
+                    value={editingPlace.color}
+                    onChange={e => setEditingPlace({ ...editingPlace, color: e.target.value })}
+                  />
                   <button onClick={() => savePlace(editingPlace)} className="bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700">Save</button>
                   <button onClick={() => setEditingPlace(null)} className="bg-gray-100 text-gray-600 px-3 py-2 rounded-lg text-sm hover:bg-gray-200">Cancel</button>
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-500">📍</span>
+                  <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: place.color }} />
                   <span className="flex-1 text-sm font-medium text-gray-800">{place.name}</span>
-                  <span className="text-xs text-gray-400">
-                    {data.events.filter(e => e.placeId === place.id).length} events
-                  </span>
+                  <span className="text-xs text-gray-400">{data.events.filter(e => e.placeId === place.id).length} events</span>
                   <button onClick={() => setEditingPlace(place)} className="text-xs text-blue-500 hover:text-blue-700 px-2 py-1">Edit</button>
                   <button onClick={() => deletePlace(place.id)} className="text-xs text-red-400 hover:text-red-600 px-2 py-1">Delete</button>
                 </div>

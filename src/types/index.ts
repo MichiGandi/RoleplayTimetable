@@ -2,12 +2,12 @@ export interface Character {
   id: string
   name: string
   role: string
-  color: string
 }
 
 export interface Place {
   id: string
   name: string
+  color: string
 }
 
 export interface TimetableEvent {

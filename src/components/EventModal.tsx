@@ -95,7 +95,6 @@ export default function EventModal({
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden">
         {/* Header */}
         <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
-          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: character.color }} />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-gray-800 truncate">{character.name}</p>
             {character.role && <p className="text-xs text-gray-400">{character.role}</p>}
