@@ -72,6 +72,17 @@ export default function TimetableView({ characters, events, places, isEditMode, 
   const [modal, setModal] = useState<ModalState | null>(null)
   const [drag, setDrag] = useState<DragState | null>(null)
   const dragRef = useRef<DragState | null>(null)
+  const [timeLineY, setTimeLineY] = useState<number>(0)
+  const timeLineDragging = useRef(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const headerRowRef = useRef<HTMLDivElement>(null)
+  const [headerH, setHeaderH] = useState(56)
+
+  useEffect(() => {
+    if (headerRowRef.current) {
+      setHeaderH(headerRowRef.current.getBoundingClientRect().height)
+    }
+  })
 
   const allTimes = events.flatMap(e => [e.startTime, e.endTime])
   const minTime = allTimes.length ? allTimes.reduce((a, b) => timeToMinutes(a) < timeToMinutes(b) ? a : b) : '15:00'
@@ -147,6 +158,28 @@ export default function TimetableView({ characters, events, places, isEditMode, 
     onChange({ events: events.filter(e => e.id !== id) })
   }
 
+  const handleTimeLineMouseDown = (e: React.MouseEvent) => {
+    if (isEditMode) return
+    e.preventDefault()
+    timeLineDragging.current = true
+
+    const moveHandler = (ev: MouseEvent) => {
+      if (!timeLineDragging.current || !containerRef.current) return
+      const rect = containerRef.current.getBoundingClientRect()
+      const hh = headerRowRef.current?.getBoundingClientRect().height ?? headerH
+      const raw = ev.clientY - rect.top - hh
+      const snapped = Math.round(raw / ROW_H) * ROW_H
+      setTimeLineY(Math.max(0, Math.min(snapped, totalHeight)))
+    }
+    const upHandler = () => {
+      timeLineDragging.current = false
+      window.removeEventListener('mousemove', moveHandler)
+      window.removeEventListener('mouseup', upHandler)
+    }
+    window.addEventListener('mousemove', moveHandler)
+    window.addEventListener('mouseup', upHandler)
+  }
+
   const placeById = (id: string | null) => places.find(p => p.id === id)
   const eventColor = (event: TimetableEvent) => {
     const place = placeById(event.placeId)
@@ -191,12 +224,13 @@ export default function TimetableView({ characters, events, places, isEditMode, 
       )}
 
       {/* Layout: fixed time column on the left, then one column per character */}
+      <div ref={containerRef} className="relative">
       <div className="flex select-none">
 
         {/* Time column */}
         <div className="flex-shrink-0 w-14 border-r border-gray-200">
           {/* Header */}
-          <div className="h-14 bg-gray-100 border-b border-gray-200 flex items-center justify-end pr-2">
+          <div ref={headerRowRef} className="bg-gray-100 border-b border-gray-200 flex items-center justify-end pr-2" style={{ minHeight: 56 }}>
             <span className="text-[10px] text-gray-500 font-medium">Zeit</span>
           </div>
           {/* Slots */}
@@ -311,7 +345,22 @@ export default function TimetableView({ characters, events, places, isEditMode, 
         })}
       </div>
 
-
+      {/* Draggable time line — view mode only */}
+      {!isEditMode && (
+        <div
+          className="absolute left-0 right-0 pointer-events-none"
+          style={{ top: timeLineY + headerH + ROW_H - 1, zIndex: 30 }}
+        >
+          <div className="absolute left-0 right-0 h-0.5 bg-red-500 opacity-80" />
+          {/* Drag handle — red pill on the left */}
+          <div
+            className="absolute pointer-events-auto cursor-ns-resize select-none bg-red-500 opacity-80 hover:opacity-100 transition-opacity rounded-full"
+            style={{ left: -8, top: -5, width: 16, height: 10 }}
+            onMouseDown={handleTimeLineMouseDown}
+          />
+        </div>
+      )}
+      </div>
 
       {modal && (
         <EventModal
