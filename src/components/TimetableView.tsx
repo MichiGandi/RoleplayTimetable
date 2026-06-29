@@ -8,6 +8,7 @@ interface Props {
   events: TimetableEvent[]
   places: Place[]
   isEditMode: boolean
+  colWidth: number
   onChange: (data: Partial<TimetableData>) => void
 }
 
@@ -66,7 +67,7 @@ function clampDragSlot(
   return proposedSlot
 }
 
-export default function TimetableView({ characters, events, places, isEditMode, onChange }: Props) {
+export default function TimetableView({ characters, events, places, isEditMode, colWidth, onChange }: Props) {
   const [activePlace, setActivePlace] = useState<string | null>(null)
   const [modal, setModal] = useState<ModalState | null>(null)
   const [drag, setDrag] = useState<DragState | null>(null)
@@ -223,7 +224,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
             <div
               key={char.id}
               className="flex-shrink-0 border-r border-gray-200"
-              style={{ width: 60 }}
+              style={{ width: colWidth }}
             >
               {/* Header */}
               <div
