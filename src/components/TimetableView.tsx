@@ -67,7 +67,7 @@ function clampDragSlot(
 }
 
 export default function TimetableView({ characters, events, places, isEditMode, onChange }: Props) {
-  const [activeTime, setActiveTime] = useState<string | null>(null)
+  const [activePlace, setActivePlace] = useState<string | null>(null)
   const [modal, setModal] = useState<ModalState | null>(null)
   const [drag, setDrag] = useState<DragState | null>(null)
   const dragRef = useRef<DragState | null>(null)
@@ -77,13 +77,12 @@ export default function TimetableView({ characters, events, places, isEditMode, 
   const maxTime = allTimes.length ? allTimes.reduce((a, b) => timeToMinutes(a) > timeToMinutes(b) ? a : b) : '19:00'
   const slots = generateTimeSlots(minTime, maxTime)
 
-  // View mode highlight
-  const activeEvents = activeTime ? events.filter(e => isEventAtTime(e.startTime, e.endTime, activeTime)) : []
-  const highlightedEventIds = new Set(activeEvents.map(e => e.id))
-  const highlightedSlots = activeTime
-    ? new Set(slots.filter(slot => activeEvents.some(e => isEventAtTime(e.startTime, e.endTime, slot))))
-    : null
-  const isSlotHighlighted = (slot: string) => !activeTime || (highlightedSlots?.has(slot) ?? false)
+  // View mode highlight — by place
+  const highlightedEventIds = activePlace
+    ? new Set(events.filter(e => e.placeId === activePlace).map(e => e.id))
+    : new Set<string>()
+  const isEventHighlighted = (event: TimetableEvent) =>
+    !activePlace || highlightedEventIds.has(event.id)
 
   const isInDrag = (charId: string, slot: string): boolean => {
     if (!drag || drag.character.id !== charId) return false
@@ -134,8 +133,6 @@ export default function TimetableView({ characters, events, places, isEditMode, 
     if (isEditMode) {
       e.stopPropagation()
       setModal({ character, event, prefillStart: event.startTime, prefillEnd: event.endTime })
-    } else {
-      setActiveTime(prev => prev === event.startTime ? null : event.startTime)
     }
   }, [isEditMode])
 
@@ -159,10 +156,31 @@ export default function TimetableView({ characters, events, places, isEditMode, 
 
   return (
     <div className="overflow-x-auto">
-      {activeTime && !isEditMode && (
-        <div className="mb-3 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 flex items-center justify-between">
-          <span>Showing all events active at <strong>{activeTime}</strong></span>
-          <button onClick={() => setActiveTime(null)} className="text-blue-500 hover:text-blue-700 font-medium ml-4">Clear ×</button>
+      {!isEditMode && places.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-2 items-center">
+          <span className="text-xs text-gray-400 mr-1">Filter by place:</span>
+          {places.map(place => (
+            <button
+              key={place.id}
+              onClick={() => setActivePlace(prev => prev === place.id ? null : place.id)}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-all"
+              style={{
+                backgroundColor: activePlace === place.id ? place.color : 'transparent',
+                borderColor: place.color,
+                color: activePlace === place.id ? 'white' : place.color,
+              }}
+            >
+              {place.name}
+            </button>
+          ))}
+          {activePlace && (
+            <button
+              onClick={() => setActivePlace(null)}
+              className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1"
+            >
+              Clear ×
+            </button>
+          )}
         </div>
       )}
       {isEditMode && (
@@ -184,7 +202,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
           {slots.map(slot => (
             <div
               key={slot}
-              className="border-b border-gray-100 flex items-center justify-end pr-2"
+              className="border-b border-gray-100 flex items-center justify-end pr-2 transition-opacity"
               style={{ height: ROW_H }}
             >
               <span className="text-[10px] font-mono text-gray-400">{slot}</span>
@@ -220,7 +238,6 @@ export default function TimetableView({ characters, events, places, isEditMode, 
                 {/* Background grid — one div per slot for hover/drag */}
                 {slots.map((slot, slotIdx) => {
                   const inDrag = isInDrag(char.id, slot)
-                  const highlighted = isSlotHighlighted(slot)
                   // Is this slot occupied by an event?
                   const occupied = events.some(e => e.characterId === char.id && isEventAtTime(e.startTime, e.endTime, slot))
 
@@ -229,7 +246,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
                       key={slot}
                       className={`absolute left-0 right-0 border-b transition-colors ${
                         isEditMode && !occupied ? 'cursor-ns-resize' : ''
-                      } ${highlighted ? '' : 'opacity-20'}`}
+                      }`}
                       style={{
                         top: slotIdx * ROW_H,
                         height: ROW_H,
@@ -251,7 +268,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
                   const gridStart = timeToMinutes(slots[0])
                   const topPx = (startMin - gridStart) / SLOT_STEP * ROW_H
                   const heightPx = (endMin - startMin) / SLOT_STEP * ROW_H
-                  const isHighlighted = highlightedEventIds.has(event.id)
+
                   const place = placeById(event.placeId)
 
                   return (
@@ -263,11 +280,11 @@ export default function TimetableView({ characters, events, places, isEditMode, 
                         top: topPx + 1,
                         height: heightPx - 2,
                         backgroundColor: eventColor(event),
-                        opacity: isEditMode ? 0.9 : 1,
+                        opacity: isEditMode ? 0.9 : (!activePlace || isEventHighlighted(event) ? 1 : 0.15),
                         zIndex: 10,
-                        outline: isHighlighted && activeTime ? `2px solid ${eventColor(event)}` : undefined,
+                        outline: activePlace && isEventHighlighted(event) ? `2px solid ${eventColor(event)}` : undefined,
                         outlineOffset: '-2px',
-                        filter: isHighlighted && activeTime ? 'brightness(1.1)' : undefined,
+                        filter: activePlace && isEventHighlighted(event) ? 'brightness(1.1)' : undefined,
                       }}
                     >
                       <span className="text-white text-[10px] font-medium drop-shadow-sm leading-snug block">
@@ -290,11 +307,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
         })}
       </div>
 
-      {!activeTime && !isEditMode && (
-        <p className="text-xs text-gray-400 mt-3 text-center">
-          Click any event to highlight all simultaneous events
-        </p>
-      )}
+
 
       {modal && (
         <EventModal
