@@ -24,8 +24,8 @@ interface DragState {
   currentSlot: string
 }
 
-const SLOT_STEP = 10
-const ROW_H = 28 // px per slot row
+const SLOT_STEP = 5
+const ROW_H = 14 // px per 5-min slot row
 
 function getDragRange(d: DragState) {
   const a = timeToMinutes(d.startSlot)
@@ -203,9 +203,11 @@ export default function TimetableView({ characters, events, places, isEditMode, 
             <div
               key={slot}
               className="border-b border-gray-100 flex items-center justify-end pr-2 transition-opacity"
-              style={{ height: ROW_H }}
+              style={{ height: ROW_H, borderBottomColor: parseInt(slot.split(':')[1]) % 10 === 0 ? '#e5e7eb' : '#f3f4f6' }}
             >
-              <span className="text-[10px] font-mono text-gray-400">{slot}</span>
+              {parseInt(slot.split(':')[1]) % 10 === 0 && (
+                <span className="text-[9px] font-mono text-gray-400">{slot}</span>
+              )}
             </div>
           ))}
         </div>
@@ -221,11 +223,11 @@ export default function TimetableView({ characters, events, places, isEditMode, 
             <div
               key={char.id}
               className="flex-shrink-0 border-r border-gray-200"
-              style={{ width: 110 }}
+              style={{ width: 60 }}
             >
               {/* Header */}
               <div
-                className="h-14 border-b border-gray-200 flex flex-col items-center justify-center px-1 text-center"
+                className="h-14 border-b border-gray-200 flex flex-col items-center justify-center px-0.5 text-center overflow-hidden"
                 style={{ borderTop: '3px solid #e5e7eb' }}
               >
                 <span className="text-[11px] font-semibold text-gray-800 leading-tight">{char.name}</span>
@@ -250,7 +252,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
                       style={{
                         top: slotIdx * ROW_H,
                         height: ROW_H,
-                        borderColor: '#f3f4f6',
+                        borderColor: parseInt(slot.split(':')[1]) % 10 === 0 ? '#e5e7eb' : '#f3f4f6',
                         backgroundColor: inDrag ? '#9E9E9E35' : undefined,
                         borderBottomColor: inDrag ? '#9E9E9E' : undefined,
                         zIndex: 0,
@@ -269,13 +271,13 @@ export default function TimetableView({ characters, events, places, isEditMode, 
                   const topPx = (startMin - gridStart) / SLOT_STEP * ROW_H
                   const heightPx = (endMin - startMin) / SLOT_STEP * ROW_H
 
-                  const place = placeById(event.placeId)
+
 
                   return (
                     <div
                       key={event.id}
                       onClick={e => handleEventClick(e, event, char)}
-                      className="absolute left-0 right-0 cursor-pointer overflow-hidden p-1 leading-tight"
+                      className="absolute left-0 right-0 cursor-pointer overflow-hidden flex items-center justify-center"
                       style={{
                         top: topPx + 1,
                         height: heightPx - 2,
@@ -287,16 +289,17 @@ export default function TimetableView({ characters, events, places, isEditMode, 
                         filter: activePlace && isEventHighlighted(event) ? 'brightness(1.1)' : undefined,
                       }}
                     >
-                      <span className="text-white text-[10px] font-medium drop-shadow-sm leading-snug block">
+                      <span
+                        className="text-white font-medium drop-shadow-sm block whitespace-nowrap overflow-hidden text-ellipsis"
+                        style={{
+                          fontSize: 10,
+                          writingMode: 'vertical-rl',
+                          textOrientation: 'mixed',
+                          transform: 'rotate(180deg)',
+                          maxHeight: heightPx - 4,
+                        }}
+                      >
                         {event.label}
-                      </span>
-                      {place && (
-                        <span className="text-white/70 text-[9px] block mt-0.5 leading-tight">
-                          📍 {place.name}
-                        </span>
-                      )}
-                      <span className="text-white/60 text-[9px] block mt-0.5">
-                        {event.startTime}–{event.endTime}
                       </span>
                     </div>
                   )
