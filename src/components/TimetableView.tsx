@@ -36,6 +36,36 @@ function getDragRange(d: DragState) {
   }
 }
 
+// Clamp proposed currentSlot so drag never overlaps an existing event
+function clampDragSlot(
+  startSlot: string,
+  proposedSlot: string,
+  charEvents: TimetableEvent[]
+): string {
+  const startMin = timeToMinutes(startSlot)
+  const proposedMin = timeToMinutes(proposedSlot)
+  const draggingDown = proposedMin >= startMin
+
+  if (draggingDown) {
+    const obstacle = charEvents
+      .filter(e => timeToMinutes(e.startTime) > startMin)
+      .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime))[0]
+    if (obstacle) {
+      const limit = timeToMinutes(obstacle.startTime) - SLOT_STEP
+      return minutesToTime(Math.min(proposedMin, limit))
+    }
+  } else {
+    const obstacle = charEvents
+      .filter(e => timeToMinutes(e.endTime) <= startMin)
+      .sort((a, b) => timeToMinutes(b.endTime) - timeToMinutes(a.endTime))[0]
+    if (obstacle) {
+      const limit = timeToMinutes(obstacle.endTime)
+      return minutesToTime(Math.max(proposedMin, limit))
+    }
+  }
+  return proposedSlot
+}
+
 export default function TimetableView({ characters, events, places, isEditMode, onChange }: Props) {
   const [activeTime, setActiveTime] = useState<string | null>(null)
   const [modal, setModal] = useState<ModalState | null>(null)
@@ -93,10 +123,12 @@ export default function TimetableView({ characters, events, places, isEditMode, 
   const handleCellMouseEnter = useCallback((char: Character, slot: string) => {
     const d = dragRef.current
     if (!d || d.character.id !== char.id) return
-    const updated = { ...d, currentSlot: slot }
+    const charEvents = events.filter(e => e.characterId === char.id)
+    const clamped = clampDragSlot(d.startSlot, slot, charEvents)
+    const updated = { ...d, currentSlot: clamped }
     dragRef.current = updated
     setDrag(updated)
-  }, [])
+  }, [events])
 
   const handleEventClick = useCallback((e: React.MouseEvent, event: TimetableEvent, character: Character) => {
     if (isEditMode) {
