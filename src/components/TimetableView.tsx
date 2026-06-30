@@ -228,21 +228,26 @@ export default function TimetableView({ characters, events, places, isEditMode, 
       <div className="flex select-none">
 
         {/* Time column */}
-        <div className="flex-shrink-0 w-14 border-r border-gray-200">
+        <div className="flex-shrink-0 w-14 border-r border-gray-200 relative">
           {/* Header */}
           <div ref={headerRowRef} className="bg-gray-100 border-b border-gray-200 flex items-center justify-end pr-2" style={{ minHeight: 56 }}>
             <span className="text-[10px] text-gray-500 font-medium">Zeit</span>
           </div>
-          {/* Slots */}
+          {/* Slot rows — just the background grid lines, no labels inside */}
           {slots.map(slot => (
             <div
               key={slot}
-              className="border-b border-gray-100 flex items-center justify-end pr-2 transition-opacity"
-              style={{ height: ROW_H, borderBottomColor: parseInt(slot.split(':')[1]) % 10 === 0 ? '#e5e7eb' : '#f3f4f6' }}
+              style={{ height: ROW_H, borderBottom: `1px solid ${parseInt(slot.split(':')[1]) % 10 === 0 ? '#e5e7eb' : '#f3f4f6'}` }}
+            />
+          ))}
+          {/* Time labels absolutely positioned ON the 10-min borders */}
+          {slots.map((slot, i) => parseInt(slot.split(':')[1]) % 10 === 0 && (
+            <div
+              key={slot + '-label'}
+              className="absolute right-2 pointer-events-none"
+              style={{ top: headerH + i * ROW_H - 12, lineHeight: 1 }}
             >
-              {parseInt(slot.split(':')[1]) % 10 === 0 && (
-                <span className="text-[9px] font-mono text-gray-400">{slot}</span>
-              )}
+              <span className="text-[9px] font-mono text-gray-400 bg-white px-0.5">{slot}</span>
             </div>
           ))}
         </div>
