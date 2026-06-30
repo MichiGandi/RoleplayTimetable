@@ -1,7 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Character, Place, TimetableData } from '../types'
 import { generateId, randomColor } from '../utils/time'
-import { defaultData } from '../utils/defaultData'
 
 interface Props {
   data: TimetableData
@@ -18,6 +17,9 @@ export default function AdminView({ data, onChange }: Props) {
 
   const [editingPlace, setEditingPlace] = useState<Place | null>(null)
   const [newPlace, setNewPlace] = useState<Omit<Place, 'id'>>({ name: '', color: randomColor() })
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [importError, setImportError] = useState<string | null>(null)
 
   const addCharacter = () => {
     if (!newChar.name.trim()) return
@@ -59,9 +61,60 @@ export default function AdminView({ data, onChange }: Props) {
     })
   }
 
-  const resetToDefault = () => {
-    if (!confirm('Reset everything to the default timetable? This cannot be undone.')) return
-    onChange(defaultData)
+  const deleteAll = () => {
+    if (!confirm('Delete all characters, places, and events? This cannot be undone.')) return
+    onChange({ characters: [], places: [], events: [] })
+  }
+
+  const exportData = () => {
+    const json = JSON.stringify(data, null, 2)
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    const date = new Date().toISOString().slice(0, 10)
+    a.download = `timetable-${date}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  const triggerImport = () => {
+    setImportError(null)
+    fileInputRef.current?.click()
+  }
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result as string)
+        if (
+          !parsed ||
+          !Array.isArray(parsed.characters) ||
+          !Array.isArray(parsed.places) ||
+          !Array.isArray(parsed.events)
+        ) {
+          throw new Error('File does not match the expected timetable format.')
+        }
+        if (!confirm('Import this file? It will replace all current characters, places, and events.')) {
+          return
+        }
+        onChange(parsed as TimetableData)
+        setImportError(null)
+      } catch (err) {
+        setImportError(err instanceof Error ? err.message : 'Could not read this file.')
+      }
+    }
+    reader.onerror = () => setImportError('Could not read this file.')
+    reader.readAsText(file)
+
+    // reset input so the same file can be re-selected later
+    e.target.value = ''
   }
 
   return (
@@ -84,12 +137,37 @@ export default function AdminView({ data, onChange }: Props) {
           Places ({data.places.length})
         </button>
         <button
-          onClick={resetToDefault}
-          className="ml-auto px-4 py-2 rounded-lg text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+          onClick={exportData}
+          className="ml-auto px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
         >
-          Reset to default
+          Export
+        </button>
+        <button
+          onClick={triggerImport}
+          className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+        >
+          Import
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json"
+          onChange={handleImportFile}
+          className="hidden"
+        />
+        <button
+          onClick={deleteAll}
+          className="px-4 py-2 rounded-lg text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+        >
+          Delete all
         </button>
       </div>
+
+      {importError && (
+        <div className="mb-4 px-4 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+          Import failed: {importError}
+        </div>
+      )}
 
       {/* Characters tab */}
       {tab === 'characters' && (

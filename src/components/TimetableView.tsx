@@ -244,7 +244,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
             {slots.map(slot => (
               <div
                 key={slot}
-                style={{ height: ROW_H, borderBottom: `1px solid ${parseInt(slot.split(':')[1]) % 10 === 0 ? '#e5e7eb' : '#f3f4f6'}` }}
+                style={{ height: ROW_H, borderBottom: `1px solid ${parseInt(slot.split(':')[1]) % 10 === 0 ? '#f3f4f6' : '#e5e7eb'}` }}
               />
             ))}
             {/* Time labels on 10-min borders */}
@@ -287,7 +287,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
                         style={{
                           top: slotIdx * ROW_H,
                           height: ROW_H,
-                          borderColor: parseInt(slot.split(':')[1]) % 10 === 0 ? '#e5e7eb' : '#f3f4f6',
+                          borderColor: parseInt(slot.split(':')[1]) % 10 === 0 ? '#f3f4f6' : '#e5e7eb',
                           backgroundColor: inDrag ? '#9E9E9E35' : undefined,
                           borderBottomColor: inDrag ? '#9E9E9E' : undefined,
                           zIndex: 0,
