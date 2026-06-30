@@ -8,6 +8,7 @@ export interface Place {
   id: string
   name: string
   color: string
+  parentId?: string | null
 }
 
 export interface TimetableEvent {

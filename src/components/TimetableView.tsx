@@ -99,8 +99,12 @@ export default function TimetableView({ characters, events, places, isEditMode, 
   const slots = generateTimeSlots(minTime, maxTime)
 
   // View mode highlight — by place
+  // All place IDs that should be highlighted: the selected place + any places whose parentId matches
+  const activePlaceIds = activePlace
+    ? new Set([activePlace, ...places.filter(p => p.parentId === activePlace).map(p => p.id)])
+    : new Set<string>()
   const highlightedEventIds = activePlace
-    ? new Set(events.filter(e => e.placeIds.includes(activePlace)).map(e => e.id))
+    ? new Set(events.filter(e => e.placeIds.some(pid => activePlaceIds.has(pid))).map(e => e.id))
     : new Set<string>()
   const isEventHighlighted = (event: TimetableEvent) =>
     !activePlace || highlightedEventIds.has(event.id)
@@ -211,20 +215,27 @@ export default function TimetableView({ characters, events, places, isEditMode, 
       {!isEditMode && places.length > 0 && (
         <div className="mb-3 mx-4 mt-2 flex flex-wrap gap-2 items-center flex-shrink-0">
           <span className="text-xs text-gray-400 mr-1">Filter by place:</span>
-          {places.map(place => (
-            <button
-              key={place.id}
-              onClick={() => setActivePlace(prev => prev === place.id ? null : place.id)}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-all"
-              style={{
-                backgroundColor: activePlace === place.id ? place.color : 'transparent',
-                borderColor: place.color,
-                color: activePlace === place.id ? 'white' : place.color,
-              }}
-            >
-              {place.name}
-            </button>
-          ))}
+          {places.map(place => {
+            const isActive = activePlace === place.id
+            const isChildActive = !isActive && activePlaceIds.has(place.id)
+            const isChild = !!place.parentId
+            return (
+              <button
+                key={place.id}
+                onClick={() => setActivePlace(prev => prev === place.id ? null : place.id)}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-all"
+                style={{
+                  backgroundColor: isActive ? place.color : isChildActive ? `${place.color}30` : 'transparent',
+                  borderColor: place.color,
+                  color: isActive ? 'white' : place.color,
+                  marginLeft: isChild ? 8 : 0,
+                  borderStyle: isChild ? 'dashed' : 'solid',
+                }}
+              >
+                {place.name}
+              </button>
+            )
+          })}
           {activePlace && (
             <button
               onClick={() => setActivePlace(null)}
@@ -370,20 +381,23 @@ export default function TimetableView({ characters, events, places, isEditMode, 
         {!isEditMode && (() => {
           const headerH = headerRowRef.current?.getBoundingClientRect().height ?? 56
           const realTop = timeLineY * ROW_H - 1
-          const clampMin = scrollInfo.scrollTop        // top of visible body area
+          const clampMin = scrollInfo.scrollTop
           const clampMax = scrollInfo.scrollTop + scrollInfo.viewportHeight - headerH - 2
           const clampedTop = Math.max(clampMin, Math.min(realTop, clampMax))
+          const isClamped = realTop < clampMin || realTop > clampMax
           return (
             <div
               className="absolute left-0 right-0 pointer-events-none"
               style={{ top: clampedTop, zIndex: 15, height: 0 }}
             >
               <div className="absolute left-0 right-0 h-0.5 bg-red-500 opacity-80" />
-              <div
-                className="absolute pointer-events-auto cursor-ns-resize select-none bg-red-500 opacity-80 hover:opacity-100 transition-opacity rounded-full"
-                style={{ left: -8, top: -5, width: 16, height: 10 }}
-                onMouseDown={handleTimeLineMouseDown}
-              />
+              {!isClamped && (
+                <div
+                  className="absolute pointer-events-auto cursor-ns-resize select-none bg-red-500 opacity-80 hover:opacity-100 transition-opacity rounded-full"
+                  style={{ left: -8, top: -5, width: 16, height: 10 }}
+                  onMouseDown={handleTimeLineMouseDown}
+                />
+              )}
             </div>
           )
         })()}

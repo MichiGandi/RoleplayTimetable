@@ -16,7 +16,7 @@ export default function AdminView({ data, onChange }: Props) {
   const [newChar, setNewChar] = useState<Omit<Character, 'id'>>({ name: '', role: '' })
 
   const [editingPlace, setEditingPlace] = useState<Place | null>(null)
-  const [newPlace, setNewPlace] = useState<Omit<Place, 'id'>>({ name: '', color: randomColor() })
+  const [newPlace, setNewPlace] = useState<Omit<Place, 'id'>>({ name: '', color: randomColor(), parentId: null })
   const [dragOverId, setDragOverId] = useState<string | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -264,6 +264,16 @@ export default function AdminView({ data, onChange }: Props) {
                   }}
                 />
               </div>
+              <select
+                className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                value={newPlace.parentId ?? ''}
+                onChange={e => setNewPlace({ ...newPlace, parentId: e.target.value || null })}
+              >
+                <option value="">No parent</option>
+                {data.places.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
               <button
                 onClick={addPlace}
                 className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
@@ -324,6 +334,16 @@ export default function AdminView({ data, onChange }: Props) {
                       }}
                     />
                   </div>
+                  <select
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                    value={editingPlace.parentId ?? ''}
+                    onChange={e => setEditingPlace({ ...editingPlace, parentId: e.target.value || null })}
+                  >
+                    <option value="">No parent</option>
+                    {data.places.filter(p => p.id !== editingPlace.id).map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
                   <button onClick={() => savePlace(editingPlace)} className="bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700">Save</button>
                   <button onClick={() => setEditingPlace(null)} className="bg-gray-100 text-gray-600 px-3 py-2 rounded-lg text-sm hover:bg-gray-200">Cancel</button>
                 </div>
@@ -331,7 +351,14 @@ export default function AdminView({ data, onChange }: Props) {
                 <div className="flex items-center gap-3">
                   <span className="text-gray-300 cursor-grab text-sm select-none">&#9776;</span>
                   <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: place.color }} />
-                  <span className="flex-1 text-sm font-medium text-gray-800">{place.name}</span>
+                  <div className="flex-1">
+                    <span className="text-sm font-medium text-gray-800">{place.name}</span>
+                    {place.parentId && (
+                      <span className="text-xs text-gray-400 ml-2">
+                        &rarr; {data.places.find(p => p.id === place.parentId)?.name}
+                      </span>
+                    )}
+                  </div>
                   <span className="text-xs text-gray-400">{data.events.filter(e => e.placeIds.includes(place.id)).length} events</span>
                   <button onClick={() => setEditingPlace(place)} className="text-xs text-blue-500 hover:text-blue-700 px-2 py-1">Edit</button>
                   <button onClick={() => deletePlace(place.id)} className="text-xs text-red-400 hover:text-red-600 px-2 py-1">Delete</button>
