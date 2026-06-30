@@ -357,13 +357,16 @@ export default function TimetableView({ characters, events, places, isEditMode, 
                         }}
                       >
                         <span
-                          className="text-white font-medium drop-shadow-sm block whitespace-nowrap overflow-hidden text-ellipsis"
+                          className="text-white font-medium drop-shadow-sm overflow-hidden"
                           style={{
                             fontSize: 10,
                             writingMode: 'vertical-rl',
                             textOrientation: 'mixed',
                             transform: 'rotate(180deg)',
                             maxHeight: heightPx - 2,
+                            wordBreak: 'break-word',
+                            overflowWrap: 'break-word',
+                            textAlign: 'center',
                           }}
                         >
                           {event.label}
