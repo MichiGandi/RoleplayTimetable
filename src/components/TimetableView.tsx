@@ -317,10 +317,10 @@ export default function TimetableView({ characters, events, places, isEditMode, 
                       <div
                         key={event.id}
                         onClick={e => handleEventClick(e, event, char)}
-                        className="absolute left-0 right-0 cursor-pointer overflow-hidden flex items-center justify-center"
+                        className="absolute left-0 right-0 cursor-pointer overflow-hidden flex items-center justify-center border-b border-white"
                         style={{
-                          top: topPx + 1,
-                          height: heightPx - 2,
+                          top: topPx,
+                          height: heightPx,
                           background: eventBackground(event),
                           opacity: isEditMode ? 0.9 : (!activePlace || isEventHighlighted(event) ? 1 : 0.15),
                           zIndex: 10,
@@ -336,7 +336,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
                             writingMode: 'vertical-rl',
                             textOrientation: 'mixed',
                             transform: 'rotate(180deg)',
-                            maxHeight: heightPx - 4,
+                            maxHeight: heightPx - 2,
                           }}
                         >
                           {event.label}
