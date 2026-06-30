@@ -75,7 +75,23 @@ export default function TimetableView({ characters, events, places, isEditMode, 
   const [timeLineY, setTimeLineY] = useState<number>(0)
   const timeLineDragging = useRef(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const [scrollInfo, setScrollInfo] = useState({ scrollTop: 0, viewportHeight: 0 })
   const headerRowRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = scrollContainerRef.current
+    if (!el) return
+    const update = () => setScrollInfo({ scrollTop: el.scrollTop, viewportHeight: el.clientHeight })
+    update()
+    el.addEventListener('scroll', update)
+    window.addEventListener('resize', update)
+    return () => {
+      el.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [])
+
 
   const allTimes = events.flatMap(e => [e.startTime, e.endTime])
   const minTime = allTimes.length ? allTimes.reduce((a, b) => timeToMinutes(a) < timeToMinutes(b) ? a : b) : '15:00'
@@ -226,7 +242,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
       )}
 
       {/* Scroll container — fills remaining height, only this scrolls. Header stays put via CSS sticky. */}
-      <div className="overflow-auto flex-1 min-h-0">
+      <div ref={scrollContainerRef} className="overflow-auto flex-1 min-h-0">
 
         {/* Sticky header */}
         <div className="flex select-none bg-white border-b border-gray-200 sticky top-0 z-20">
@@ -350,20 +366,27 @@ export default function TimetableView({ characters, events, places, isEditMode, 
           })}
         </div>
 
-        {/* Draggable time line — view mode only */}
-        {!isEditMode && (
-          <div
-            className="absolute left-0 right-0 pointer-events-none"
-            style={{ top: timeLineY * ROW_H - 1, zIndex: 15 }}
-          >
-            <div className="absolute left-0 right-0 h-0.5 bg-red-500 opacity-80" />
+        {/* Red time line — absolute in body, top clamped to visible viewport */}
+        {!isEditMode && (() => {
+          const headerH = headerRowRef.current?.getBoundingClientRect().height ?? 56
+          const realTop = timeLineY * ROW_H - 1
+          const clampMin = scrollInfo.scrollTop        // top of visible body area
+          const clampMax = scrollInfo.scrollTop + scrollInfo.viewportHeight - headerH - 2
+          const clampedTop = Math.max(clampMin, Math.min(realTop, clampMax))
+          return (
             <div
-              className="absolute pointer-events-auto cursor-ns-resize select-none bg-red-500 opacity-80 hover:opacity-100 transition-opacity rounded-full"
-              style={{ left: -8, top: -5, width: 16, height: 10 }}
-              onMouseDown={handleTimeLineMouseDown}
-            />
-          </div>
-        )}
+              className="absolute left-0 right-0 pointer-events-none"
+              style={{ top: clampedTop, zIndex: 15, height: 0 }}
+            >
+              <div className="absolute left-0 right-0 h-0.5 bg-red-500 opacity-80" />
+              <div
+                className="absolute pointer-events-auto cursor-ns-resize select-none bg-red-500 opacity-80 hover:opacity-100 transition-opacity rounded-full"
+                style={{ left: -8, top: -5, width: 16, height: 10 }}
+                onMouseDown={handleTimeLineMouseDown}
+              />
+            </div>
+          )
+        })()}
       </div>
       </div>
 
