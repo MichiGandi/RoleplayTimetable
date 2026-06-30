@@ -57,7 +57,7 @@ export default function EventModal({
   // Recompute overlap whenever times change
   const overlap = hasOverlap(startTime, endTime, character.id, allEvents, event?.id)
   const endBeforeStart = timeToMinutes(endTime) <= timeToMinutes(startTime)
-  const canSave = label.trim().length > 0 && !endBeforeStart
+  const canSave = !endBeforeStart
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
