@@ -20,8 +20,8 @@ export default function App() {
   const showWidthControl = view === 'view' || view === 'edit'
 
   return (
-    <div className="min-h-screen bg-white">
-      <header className="border-b border-gray-200 px-4 py-3 flex items-center gap-4">
+    <div className="h-screen flex flex-col bg-white overflow-hidden">
+      <header className="border-b border-gray-200 px-4 py-3 flex items-center gap-4 flex-shrink-0">
         <h1 className="text-base font-semibold text-gray-900">Timetable</h1>
         <nav className="flex gap-1 ml-2">
           <button
@@ -86,7 +86,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className={view === 'admin' ? '' : 'p-4'}>
+      <main className={view === 'admin' ? 'flex-1 overflow-auto' : 'flex-1 overflow-hidden flex flex-col'}>
         {view === 'admin' ? (
           <AdminView data={data} onChange={setData} />
         ) : (
