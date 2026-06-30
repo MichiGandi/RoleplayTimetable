@@ -168,8 +168,8 @@ export default function TimetableView({ characters, events, places, isEditMode, 
       const rect = containerRef.current.getBoundingClientRect()
       const hh = headerRowRef.current?.getBoundingClientRect().height ?? headerH
       const raw = ev.clientY - rect.top - hh
-      const snapped = Math.round(raw / ROW_H) * ROW_H
-      setTimeLineY(Math.max(0, Math.min(snapped, totalHeight)))
+      const rowIndex = Math.floor((raw + ROW_H / 2) / ROW_H)
+      setTimeLineY(Math.max(0, Math.min(rowIndex, slots.length - 1)))
     }
     const upHandler = () => {
       timeLineDragging.current = false
@@ -354,7 +354,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
       {!isEditMode && (
         <div
           className="absolute left-0 right-0 pointer-events-none"
-          style={{ top: timeLineY + headerH + ROW_H - 1, zIndex: 30 }}
+          style={{ top: headerH + timeLineY * ROW_H - 1, zIndex: 30 }}
         >
           <div className="absolute left-0 right-0 h-0.5 bg-red-500 opacity-80" />
           {/* Drag handle — red pill on the left */}
