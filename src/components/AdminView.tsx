@@ -245,12 +245,25 @@ export default function AdminView({ data, onChange }: Props) {
                 onChange={e => setNewPlace({ ...newPlace, name: e.target.value })}
                 onKeyDown={e => e.key === 'Enter' && addPlace()}
               />
-              <input
-                type="color"
-                className="border border-gray-200 rounded-lg h-[38px] w-12 cursor-pointer"
-                value={newPlace.color}
-                onChange={e => setNewPlace({ ...newPlace, color: e.target.value })}
-              />
+              <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden h-[38px]">
+                <input
+                  type="color"
+                  className="h-full w-9 cursor-pointer border-0 p-0.5 bg-transparent"
+                  value={newPlace.color}
+                  onChange={e => setNewPlace({ ...newPlace, color: e.target.value })}
+                  title="Pick colour"
+                />
+                <input
+                  type="text"
+                  maxLength={7}
+                  className="w-20 px-2 text-xs font-mono border-0 focus:outline-none"
+                  value={newPlace.color}
+                  onChange={e => {
+                    const v = e.target.value
+                    if (/^#[0-9a-fA-F]{0,6}$/.test(v)) setNewPlace({ ...newPlace, color: v })
+                  }}
+                />
+              </div>
               <button
                 onClick={addPlace}
                 className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
@@ -292,12 +305,25 @@ export default function AdminView({ data, onChange }: Props) {
                     onChange={e => setEditingPlace({ ...editingPlace, name: e.target.value })}
                     onKeyDown={e => e.key === 'Enter' && savePlace(editingPlace)}
                   />
-                  <input
-                    type="color"
-                    className="border border-gray-200 rounded-lg h-[38px] w-12 cursor-pointer"
-                    value={editingPlace.color}
-                    onChange={e => setEditingPlace({ ...editingPlace, color: e.target.value })}
-                  />
+                  <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden h-[38px]">
+                    <input
+                      type="color"
+                      className="h-full w-9 cursor-pointer border-0 p-0.5 bg-transparent"
+                      value={editingPlace.color}
+                      onChange={e => setEditingPlace({ ...editingPlace, color: e.target.value })}
+                      title="Pick colour"
+                    />
+                    <input
+                      type="text"
+                      maxLength={7}
+                      className="w-20 px-2 text-xs font-mono border-0 focus:outline-none"
+                      value={editingPlace.color}
+                      onChange={e => {
+                        const v = e.target.value
+                        if (/^#[0-9a-fA-F]{0,6}$/.test(v)) setEditingPlace({ ...editingPlace, color: v })
+                      }}
+                    />
+                  </div>
                   <button onClick={() => savePlace(editingPlace)} className="bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700">Save</button>
                   <button onClick={() => setEditingPlace(null)} className="bg-gray-100 text-gray-600 px-3 py-2 rounded-lg text-sm hover:bg-gray-200">Cancel</button>
                 </div>
