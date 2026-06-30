@@ -17,6 +17,7 @@ export default function AdminView({ data, onChange }: Props) {
 
   const [editingPlace, setEditingPlace] = useState<Place | null>(null)
   const [newPlace, setNewPlace] = useState<Omit<Place, 'id'>>({ name: '', color: randomColor() })
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [importError, setImportError] = useState<string | null>(null)
@@ -260,7 +261,29 @@ export default function AdminView({ data, onChange }: Props) {
           </div>
 
           {data.places.map(place => (
-            <div key={place.id} className="border border-gray-200 rounded-xl p-4">
+            <div
+              key={place.id}
+              draggable={!editingPlace}
+              onDragStart={e => { e.dataTransfer.setData('placeId', place.id) }}
+              onDragOver={e => { e.preventDefault(); setDragOverId(place.id) }}
+              onDragLeave={() => setDragOverId(null)}
+              onDrop={e => {
+                e.preventDefault()
+                const fromId = e.dataTransfer.getData('placeId')
+                if (fromId === place.id) { setDragOverId(null); return }
+                const places = [...data.places]
+                const fromIdx = places.findIndex(p => p.id === fromId)
+                const toIdx = places.findIndex(p => p.id === place.id)
+                const [moved] = places.splice(fromIdx, 1)
+                places.splice(toIdx, 0, moved)
+                onChange({ ...data, places })
+                setDragOverId(null)
+              }}
+              onDragEnd={() => setDragOverId(null)}
+              className={`border rounded-xl p-4 transition-colors ${
+                dragOverId === place.id ? 'border-blue-400 bg-blue-50' : 'border-gray-200'
+              }`}
+            >
               {editingPlace?.id === place.id ? (
                 <div className="flex gap-2 flex-wrap">
                   <input
@@ -280,6 +303,7 @@ export default function AdminView({ data, onChange }: Props) {
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
+                  <span className="text-gray-300 cursor-grab text-sm select-none">&#9776;</span>
                   <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: place.color }} />
                   <span className="flex-1 text-sm font-medium text-gray-800">{place.name}</span>
                   <span className="text-xs text-gray-400">{data.events.filter(e => e.placeIds.includes(place.id)).length} events</span>
