@@ -124,23 +124,37 @@ export default function EventModal({
             <div className="flex-1">
               <label className="block text-xs font-medium text-gray-500 mb-1">Start</label>
               <input
-                type="time"
-                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 ${
+                type="text"
+                inputMode="numeric"
+                placeholder="HH:MM"
+                maxLength={5}
+                className={`w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-200 ${
                   endBeforeStart ? 'border-red-300 focus:border-red-400' : 'border-gray-200 focus:border-blue-400'
                 }`}
                 value={startTime}
-                onChange={e => setStartTime(e.target.value)}
+                onChange={e => {
+                  let v = e.target.value.replace(/[^0-9:]/g, '')
+                  if (v.length === 2 && !v.includes(':') && startTime.length === 1) v = v + ':'
+                  setStartTime(v)
+                }}
               />
             </div>
             <div className="flex-1">
               <label className="block text-xs font-medium text-gray-500 mb-1">End</label>
               <input
-                type="time"
-                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 ${
+                type="text"
+                inputMode="numeric"
+                placeholder="HH:MM"
+                maxLength={5}
+                className={`w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-200 ${
                   endBeforeStart ? 'border-red-300 focus:border-red-400' : 'border-gray-200 focus:border-blue-400'
                 }`}
                 value={endTime}
-                onChange={e => setEndTime(e.target.value)}
+                onChange={e => {
+                  let v = e.target.value.replace(/[^0-9:]/g, '')
+                  if (v.length === 2 && !v.includes(':') && endTime.length === 1) v = v + ':'
+                  setEndTime(v)
+                }}
               />
             </div>
           </div>
