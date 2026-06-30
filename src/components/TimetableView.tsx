@@ -251,10 +251,15 @@ export default function TimetableView({ characters, events, places, isEditMode, 
             {slots.map((slot, i) => parseInt(slot.split(':')[1]) % 10 === 0 && (
               <div
                 key={slot + '-label'}
-                className="absolute right-2 pointer-events-none"
-                style={{ top: i * ROW_H - 5, lineHeight: 1 }}
+                className="absolute right-2 pointer-events-none flex items-center justify-end"
+                style={{ top: i * ROW_H + 4, height: 0 }}
               >
-                <span className="text-[9px] font-mono text-gray-400 bg-white px-0.5">{slot}</span>
+                <span
+                  className="text-[9px] font-mono text-gray-400 bg-white px-0.5"
+                  style={{ lineHeight: 1, transform: 'translateY(-50%)' }}
+                >
+                  {slot}
+                </span>
               </div>
             ))}
           </div>
