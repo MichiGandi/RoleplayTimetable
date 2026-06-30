@@ -13,7 +13,7 @@ export interface Place {
 export interface TimetableEvent {
   id: string
   characterId: string
-  placeId: string | null
+  placeIds: string[]
   startTime: string  // "HH:MM"
   endTime: string    // "HH:MM"
   label: string

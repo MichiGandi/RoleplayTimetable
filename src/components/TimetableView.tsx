@@ -84,7 +84,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
 
   // View mode highlight — by place
   const highlightedEventIds = activePlace
-    ? new Set(events.filter(e => e.placeId === activePlace).map(e => e.id))
+    ? new Set(events.filter(e => e.placeIds.includes(activePlace)).map(e => e.id))
     : new Set<string>()
   const isEventHighlighted = (event: TimetableEvent) =>
     !activePlace || highlightedEventIds.has(event.id)
@@ -172,10 +172,20 @@ export default function TimetableView({ characters, events, places, isEditMode, 
     window.addEventListener('mouseup', upHandler)
   }
 
-  const placeById = (id: string | null) => places.find(p => p.id === id)
-  const eventColor = (event: TimetableEvent) => {
-    const place = placeById(event.placeId)
-    return place?.color ?? '#9E9E9E'
+  const placeById = (id: string) => places.find(p => p.id === id)
+  const eventColors = (event: TimetableEvent): string[] => {
+    const colors = event.placeIds.map(id => placeById(id)?.color).filter((c): c is string => !!c)
+    return colors.length > 0 ? colors : ['#9E9E9E']
+  }
+  // Single representative color, used for outlines etc.
+  const eventColor = (event: TimetableEvent) => eventColors(event)[0]
+  // CSS background — solid for 1 color, even horizontal stripes for multiple
+  const eventBackground = (event: TimetableEvent): string => {
+    const colors = eventColors(event)
+    if (colors.length === 1) return colors[0]
+    const step = 100 / colors.length
+    const stops = colors.map((c, i) => `${c} ${i * step}%, ${c} ${(i + 1) * step}%`).join(', ')
+    return `linear-gradient(to right, ${stops})`
   }
 
   const totalHeight = slots.length * ROW_H
@@ -311,7 +321,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
                         style={{
                           top: topPx + 1,
                           height: heightPx - 2,
-                          backgroundColor: eventColor(event),
+                          background: eventBackground(event),
                           opacity: isEditMode ? 0.9 : (!activePlace || isEventHighlighted(event) ? 1 : 0.15),
                           zIndex: 10,
                           outline: activePlace && isEventHighlighted(event) ? `2px solid ${eventColor(event)}` : undefined,

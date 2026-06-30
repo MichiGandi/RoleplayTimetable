@@ -52,7 +52,7 @@ export default function EventModal({
   const [label, setLabel] = useState(event?.label ?? '')
   const [startTime, setStartTime] = useState(event?.startTime ?? prefillStart)
   const [endTime, setEndTime] = useState(event?.endTime ?? defaultEnd)
-  const [placeId, setPlaceId] = useState<string>(event?.placeId ?? '')
+  const [placeIds, setPlaceIds] = useState<string[]>(event?.placeIds ?? [])
 
   // Recompute overlap whenever times change
   const overlap = hasOverlap(startTime, endTime, character.id, allEvents, event?.id)
@@ -65,12 +65,16 @@ export default function EventModal({
     return () => window.removeEventListener('keydown', handler)
   }, [onClose])
 
+  const togglePlace = (id: string) => {
+    setPlaceIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id])
+  }
+
   const handleSave = () => {
     if (!canSave) return
     onSave({
       id: event?.id ?? generateId(),
       characterId: character.id,
-      placeId: placeId || null,
+      placeIds,
       startTime,
       endTime,
       label: label.trim(),
@@ -156,17 +160,31 @@ export default function EventModal({
           )}
 
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Place</label>
-            <select
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-              value={placeId}
-              onChange={e => setPlaceId(e.target.value)}
-            >
-              <option value="">— no place —</option>
-              {places.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Places</label>
+            {places.length === 0 ? (
+              <p className="text-xs text-gray-400">No places defined yet — add some in Settings.</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {places.map(p => {
+                  const selected = placeIds.includes(p.id)
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => togglePlace(p.id)}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all"
+                      style={{
+                        backgroundColor: selected ? p.color : 'transparent',
+                        borderColor: p.color,
+                        color: selected ? 'white' : p.color,
+                      }}
+                    >
+                      {p.name}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
 

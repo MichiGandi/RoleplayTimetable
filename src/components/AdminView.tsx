@@ -53,11 +53,11 @@ export default function AdminView({ data, onChange }: Props) {
   }
 
   const deletePlace = (id: string) => {
-    if (!confirm('Delete this place? Events using it will have no place assigned.')) return
+    if (!confirm('Delete this place? It will be removed from any events using it.')) return
     onChange({
       ...data,
       places: data.places.filter(p => p.id !== id),
-      events: data.events.map(e => e.placeId === id ? { ...e, placeId: null } : e),
+      events: data.events.map(e => ({ ...e, placeIds: e.placeIds.filter(pid => pid !== id) })),
     })
   }
 
@@ -282,7 +282,7 @@ export default function AdminView({ data, onChange }: Props) {
                 <div className="flex items-center gap-3">
                   <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: place.color }} />
                   <span className="flex-1 text-sm font-medium text-gray-800">{place.name}</span>
-                  <span className="text-xs text-gray-400">{data.events.filter(e => e.placeId === place.id).length} events</span>
+                  <span className="text-xs text-gray-400">{data.events.filter(e => e.placeIds.includes(place.id)).length} events</span>
                   <button onClick={() => setEditingPlace(place)} className="text-xs text-blue-500 hover:text-blue-700 px-2 py-1">Edit</button>
                   <button onClick={() => deletePlace(place.id)} className="text-xs text-red-400 hover:text-red-600 px-2 py-1">Delete</button>
                 </div>
