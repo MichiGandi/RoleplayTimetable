@@ -358,7 +358,8 @@ export default function TimetableView({ characters, events, places, isEditMode, 
                       >
                         <span
                           className="text-white font-medium drop-shadow-sm overflow-hidden"
-                          style={{
+                          style={heightPx > colWidth ? {
+                            // taller than wide — vertical text
                             fontSize: 10,
                             writingMode: 'vertical-rl',
                             textOrientation: 'mixed',
@@ -367,6 +368,16 @@ export default function TimetableView({ characters, events, places, isEditMode, 
                             wordBreak: 'break-word',
                             overflowWrap: 'break-word',
                             textAlign: 'center',
+                          } : {
+                            // wider than tall — horizontal text
+                            fontSize: 10,
+                            lineHeight: 1.2,
+                            maxWidth: colWidth - 4,
+                            maxHeight: heightPx - 2,
+                            wordBreak: 'break-word',
+                            overflowWrap: 'break-word',
+                            textAlign: 'center',
+                            overflow: 'hidden',
                           }}
                         >
                           {event.label}
