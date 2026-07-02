@@ -124,7 +124,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
     ? new Set(events.filter(e => e.placeIds.some(pid => activePlaceIds.has(pid))).map(e => e.id))
     : new Set<string>()
   const isEventHighlighted = (event: TimetableEvent) =>
-    !activePlace || highlightedEventIds.has(event.id)
+    !activePlace || event.placeIds.length === 0 || highlightedEventIds.has(event.id)
 
   const isInDrag = (charId: string, slot: string): boolean => {
     if (!drag || drag.character.id !== charId) return false
