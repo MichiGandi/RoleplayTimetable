@@ -215,7 +215,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
       {!isEditMode && places.length > 0 && (
         <div className="mb-1 mx-4 mt-1 flex flex-wrap gap-1 items-center flex-shrink-0">
           <span className="text-xs text-gray-400 mr-1">Filter:</span>
-          {places.map(place => {
+          {places.filter(p => !p.hiddenInFilter).map(place => {
             const isActive = activePlace === place.id
             const isChildActive = !isActive && activePlaceIds.has(place.id)
             const isChild = !!place.parentId

@@ -9,6 +9,7 @@ export interface Place {
   name: string
   color: string
   parentId?: string | null
+  hiddenInFilter?: boolean
 }
 
 export interface TimetableEvent {

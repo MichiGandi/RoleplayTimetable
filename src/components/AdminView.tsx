@@ -360,6 +360,13 @@ export default function AdminView({ data, onChange }: Props) {
                     )}
                   </div>
                   <span className="text-xs text-gray-400">{data.events.filter(e => e.placeIds.includes(place.id)).length} events</span>
+                  <button
+                    onClick={() => onChange({ ...data, places: data.places.map(p => p.id === place.id ? { ...p, hiddenInFilter: !p.hiddenInFilter } : p) })}
+                    className={`text-xs px-2 py-1 rounded-lg border transition-colors ${place.hiddenInFilter ? 'border-gray-200 text-gray-300' : 'border-gray-200 text-gray-500 hover:border-gray-400'}`}
+                    title={place.hiddenInFilter ? 'Show in filter' : 'Hide from filter'}
+                  >
+                    {place.hiddenInFilter ? 'hidden' : 'visible'}
+                  </button>
                   <button onClick={() => setEditingPlace(place)} className="text-xs text-blue-500 hover:text-blue-700 px-2 py-1">Edit</button>
                   <button onClick={() => deletePlace(place.id)} className="text-xs text-red-400 hover:text-red-600 px-2 py-1">Delete</button>
                 </div>
