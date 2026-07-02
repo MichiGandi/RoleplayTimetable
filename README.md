@@ -1,16 +1,23 @@
-# Timetable
+# RoleplayTimetable
 
-Interactive timetable with admin UI. Built with React + TypeScript + Tailwind + Vite.
+Interactive timetable for roleplay scenarios, built with React + TypeScript + Tailwind + Vite.
+
+## Features
+
+- **View mode** — browse the timetable, filter by place, click any event for details, drag the red time line to track progress
+- **Edit mode** — drag to create events, click to edit, all changes saved instantly to localStorage
+- **Settings** — manage characters and places (reorder by drag, assign parent places, hide from filter)
+- **Import / Export** — backup and restore data as JSON
 
 ## Local development (Windows)
 
-**Prerequisites:** Install [Node.js](https://nodejs.org/) (v20 or later).
+**Prerequisites:** [Node.js](https://nodejs.org/) v20 or later.
 
-```bash
-# 1. Install dependencies
+```powershell
+# Install dependencies
 npm install
 
-# 2. Start dev server
+# Start dev server
 npm run dev
 ```
 
@@ -18,42 +25,27 @@ Open http://localhost:5173 in your browser.
 
 ## Build for production
 
-```bash
+```powershell
 npm run build
 ```
 
 Output goes to the `dist/` folder.
 
-## Deploy to Synology NAS (Docker)
+## Deploy to Synology NAS
 
-**Prerequisites:** Docker Desktop installed on Windows, Docker / Container Manager on your Synology.
+**Prerequisites:** Docker Desktop on Windows, Container Manager on your Synology.
 
-### Option A — Build on Windows, copy to NAS
+### Step 1 — Build the Docker image (on Windows)
 
-```bash
-# Build the image
-docker build -t timetable .
-
-# Save to a file
-docker save timetable | gzip > timetable.tar.gz
+```powershell
+docker build -t username/roleplay-timetable .
 ```
 
-Then in Synology Container Manager → Image → Add → From File → upload `timetable.tar.gz`.
-Create a container from that image, map port 8080 → 80.
+### Step 2 — Save the image to a file
 
-### Option B — Build directly on NAS via SSH
-
-```bash
-ssh your-nas-user@your-nas-ip
-# Upload this project folder to the NAS first, then:
-cd /path/to/timetable
-docker build -t timetable .
-docker run -d -p 8080:80 --name timetable --restart unless-stopped timetable
+```powershell
+docker save username/roleplay-timetable -o roleplay-timetable.tar
 ```
 
-Access at: http://your-nas-ip:8080
+Note: `gzip` is not available in Windows PowerShell, so save as `.tar` (not `.tar.gz`).
 
-## Data
-
-All timetable data is stored in the browser's localStorage.
-Use the **Edit** tab in the app to add, edit, or delete characters and events.
