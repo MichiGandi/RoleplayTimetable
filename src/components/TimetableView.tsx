@@ -70,6 +70,7 @@ function clampDragSlot(
 export default function TimetableView({ characters, events, places, isEditMode, colWidth, onChange }: Props) {
   const [activePlace, setActivePlace] = useState<string | null>(null)
   const [modal, setModal] = useState<ModalState | null>(null)
+  const [viewDetail, setViewDetail] = useState<{ event: TimetableEvent; character: Character } | null>(null)
   const [drag, setDrag] = useState<DragState | null>(null)
   const dragRef = useRef<DragState | null>(null)
   const [timeLineY, setTimeLineY] = useState<number>(0)
@@ -175,6 +176,9 @@ export default function TimetableView({ characters, events, places, isEditMode, 
     if (isEditMode) {
       e.stopPropagation()
       setModal({ character, event, prefillStart: event.startTime, prefillEnd: event.endTime })
+    } else {
+      e.stopPropagation()
+      setViewDetail({ event, character })
     }
   }, [isEditMode])
 
@@ -425,6 +429,67 @@ export default function TimetableView({ characters, events, places, isEditMode, 
         })()}
       </div>
       </div>
+
+      {/* View-mode detail popup */}
+      {viewDetail && !isEditMode && (() => {
+        const { event, character } = viewDetail
+        const eventPlaces = places.filter(p => event.placeIds.includes(p.id))
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+            onClick={() => setViewDetail(null)}
+          >
+            <div
+              className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Colour bar */}
+              <div
+                className="h-1.5"
+                style={{
+                  background: eventBackground(event),
+                }}
+              />
+              {/* Header */}
+              <div className="px-5 pt-4 pb-3 border-b border-gray-100 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-base font-semibold text-gray-900 leading-snug">
+                    {event.label || <span className="text-gray-400 italic">No label</span>}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-0.5">{character.name}{character.role ? ` · ${character.role}` : ''}</p>
+                </div>
+                <button
+                  onClick={() => setViewDetail(null)}
+                  className="text-gray-400 hover:text-gray-600 text-xl leading-none flex-shrink-0 mt-0.5"
+                >×</button>
+              </div>
+              {/* Details */}
+              <div className="px-5 py-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-400 w-12">Time</span>
+                  <span className="text-sm font-mono text-gray-800">{event.startTime} – {event.endTime}</span>
+                </div>
+                {eventPlaces.length > 0 && (
+                  <div className="flex items-start gap-3">
+                    <span className="text-xs text-gray-400 w-12 pt-0.5">Place</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {eventPlaces.map(p => (
+                        <span
+                          key={p.id}
+                          className="px-2 py-0.5 rounded-full text-xs font-medium text-white"
+                          style={{ backgroundColor: p.color }}
+                        >
+                          {p.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {modal && (
         <EventModal
