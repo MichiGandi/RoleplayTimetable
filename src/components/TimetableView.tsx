@@ -214,8 +214,6 @@ export default function TimetableView({ characters, events, places, isEditMode, 
     const colors = event.placeIds.map(id => placeById(id)?.color).filter((c): c is string => !!c)
     return colors.length > 0 ? colors : ['#9E9E9E']
   }
-  // Single representative color, used for outlines etc.
-  const eventColor = (event: TimetableEvent) => eventColors(event)[0]
   // CSS background — solid for 1 color, even horizontal stripes for multiple
   const eventBackground = (event: TimetableEvent): string => {
     const colors = eventColors(event)
@@ -366,11 +364,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
                           top: topPx,
                           height: heightPx,
                           background: eventBackground(event),
-                          opacity: isEditMode ? 0.9 : (!activePlace || isEventHighlighted(event) ? 1 : 0.15),
-                          zIndex: 10,
-                          outline: activePlace && isEventHighlighted(event) ? `2px solid ${eventColor(event)}` : undefined,
-                          outlineOffset: '-2px',
-                          filter: activePlace && isEventHighlighted(event) ? 'brightness(1.1)' : undefined,
+                          opacity: isEditMode ? 0.9 : (!activePlace || isEventHighlighted(event) ? 1 : 0.3),
                         }}
                       >
                         <span
