@@ -213,8 +213,8 @@ export default function TimetableView({ characters, events, places, isEditMode, 
   return (
     <div className="flex flex-col h-full min-h-0">
       {!isEditMode && places.length > 0 && (
-        <div className="mb-3 mx-4 mt-2 flex flex-wrap gap-2 items-center flex-shrink-0">
-          <span className="text-xs text-gray-400 mr-1">Filter by place:</span>
+        <div className="mb-1 mx-4 mt-1 flex flex-wrap gap-1 items-center flex-shrink-0">
+          <span className="text-xs text-gray-400 mr-1">Filter:</span>
           {places.map(place => {
             const isActive = activePlace === place.id
             const isChildActive = !isActive && activePlaceIds.has(place.id)
@@ -223,12 +223,12 @@ export default function TimetableView({ characters, events, places, isEditMode, 
               <button
                 key={place.id}
                 onClick={() => setActivePlace(prev => prev === place.id ? null : place.id)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-all"
+                className="flex items-center px-2 py-0.5 rounded-full text-xs font-medium border transition-all"
                 style={{
                   backgroundColor: isActive ? place.color : isChildActive ? `${place.color}30` : 'transparent',
                   borderColor: place.color,
                   color: isActive ? 'white' : place.color,
-                  marginLeft: isChild ? 8 : 0,
+                  marginLeft: isChild ? 6 : 0,
                   borderStyle: isChild ? 'dashed' : 'solid',
                 }}
               >
@@ -239,15 +239,15 @@ export default function TimetableView({ characters, events, places, isEditMode, 
           {activePlace && (
             <button
               onClick={() => setActivePlace(null)}
-              className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1"
+              className="text-xs text-gray-400 hover:text-gray-600 px-1"
             >
-              Clear ×
+              ×
             </button>
           )}
         </div>
       )}
       {isEditMode && (
-        <div className="mb-3 mx-4 mt-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 flex-shrink-0">
+        <div className="mb-1 mx-4 mt-1 px-3 py-1 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700 flex-shrink-0">
           Click an event to edit · Drag over empty cells to create a new event
         </div>
       )}
@@ -398,20 +398,17 @@ export default function TimetableView({ characters, events, places, isEditMode, 
           const clampMin = scrollInfo.scrollTop
           const clampMax = scrollInfo.scrollTop + scrollInfo.viewportHeight - headerH - 2
           const clampedTop = Math.max(clampMin, Math.min(realTop, clampMax))
-          const isClamped = realTop < clampMin || realTop > clampMax
           return (
             <div
               className="absolute left-0 right-0 pointer-events-none"
               style={{ top: clampedTop, zIndex: 15, height: 0 }}
             >
               <div className="absolute left-0 right-0 h-0.5 bg-red-500 opacity-80" />
-              {!isClamped && (
-                <div
-                  className="absolute pointer-events-auto cursor-ns-resize select-none bg-red-500 opacity-80 hover:opacity-100 transition-opacity rounded-full"
-                  style={{ left: -8, top: -5, width: 16, height: 10 }}
-                  onMouseDown={handleTimeLineMouseDown}
-                />
-              )}
+              <div
+                className="absolute pointer-events-auto cursor-ns-resize select-none bg-red-500 opacity-80 hover:opacity-100 transition-opacity rounded-full"
+                style={{ left: -8, top: -5, width: 16, height: 10 }}
+                onMouseDown={handleTimeLineMouseDown}
+              />
             </div>
           )
         })()}
