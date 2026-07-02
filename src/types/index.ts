@@ -19,6 +19,7 @@ export interface TimetableEvent {
   startTime: string  // "HH:MM"
   endTime: string    // "HH:MM"
   label: string
+  description?: string
 }
 
 export interface TimetableData {

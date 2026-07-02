@@ -485,6 +485,12 @@ export default function TimetableView({ characters, events, places, isEditMode, 
                     </div>
                   </div>
                 )}
+                {event.description && (
+                  <div className="flex items-start gap-3 pt-1 border-t border-gray-100">
+                    <span className="text-xs text-gray-400 w-12 pt-0.5">Notes</span>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap flex-1">{event.description}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

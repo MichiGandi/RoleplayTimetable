@@ -50,6 +50,7 @@ export default function EventModal({
   const defaultEnd = prefillEnd ?? minutesToTime(timeToMinutes(prefillStart) + SLOT_STEP)
 
   const [label, setLabel] = useState(event?.label ?? '')
+  const [description, setDescription] = useState(event?.description ?? '')
   const [startTime, setStartTime] = useState(event?.startTime ?? prefillStart)
   const [endTime, setEndTime] = useState(event?.endTime ?? defaultEnd)
   const [placeIds, setPlaceIds] = useState<string[]>(event?.placeIds ?? [])
@@ -78,6 +79,7 @@ export default function EventModal({
       startTime,
       endTime,
       label: label.trim(),
+      description: description.trim() || undefined,
     })
     onClose()
   }
@@ -117,6 +119,17 @@ export default function EventModal({
               value={label}
               onChange={e => setLabel(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSave()}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Description <span className="text-gray-300 font-normal">(only shown in detail view)</span></label>
+            <textarea
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 resize-none"
+              placeholder="Additional notes…"
+              rows={3}
+              value={description}
+              onChange={e => setDescription(e.target.value)}
             />
           </div>
 
