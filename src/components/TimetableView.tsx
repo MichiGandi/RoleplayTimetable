@@ -98,11 +98,28 @@ export default function TimetableView({ characters, events, places, isEditMode, 
   const maxTime = allTimes.length ? allTimes.reduce((a, b) => timeToMinutes(a) > timeToMinutes(b) ? a : b) : '19:00'
   const slots = generateTimeSlots(minTime, maxTime)
 
-  // View mode highlight — by place
-  // All place IDs that should be highlighted: the selected place + any places whose parentId matches
-  const activePlaceIds = activePlace
-    ? new Set([activePlace, ...places.filter(p => p.parentId === activePlace).map(p => p.id)])
-    : new Set<string>()
+  // View mode highlight — by place, recursively expanding ancestors and descendants
+  const activePlaceIds = (() => {
+    if (!activePlace) return new Set<string>()
+    const ids = new Set<string>()
+
+    // Walk DOWN: collect the selected place and all descendants recursively
+    const addDescendants = (id: string) => {
+      ids.add(id)
+      places.filter(p => p.parentId === id).forEach(p => addDescendants(p.id))
+    }
+    addDescendants(activePlace)
+
+    // Walk UP: also include all ancestors of the selected place
+    let cursor = places.find(p => p.id === activePlace)
+    while (cursor?.parentId) {
+      ids.add(cursor.parentId)
+      cursor = places.find(p => p.id === cursor!.parentId)
+    }
+
+    return ids
+  })()
+
   const highlightedEventIds = activePlace
     ? new Set(events.filter(e => e.placeIds.some(pid => activePlaceIds.has(pid))).map(e => e.id))
     : new Set<string>()
