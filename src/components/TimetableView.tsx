@@ -9,6 +9,10 @@ interface Props {
   places: Place[]
   isEditMode: boolean
   colWidth: number
+  activePlace: string | null
+  onActivePlaceChange: (place: string | null) => void
+  timeLineY: number
+  onTimeLineYChange: (y: number) => void
   onChange: (data: Partial<TimetableData>) => void
 }
 
@@ -67,13 +71,11 @@ function clampDragSlot(
   return proposedSlot
 }
 
-export default function TimetableView({ characters, events, places, isEditMode, colWidth, onChange }: Props) {
-  const [activePlace, setActivePlace] = useState<string | null>(null)
+export default function TimetableView({ characters, events, places, isEditMode, colWidth, activePlace, onActivePlaceChange, timeLineY, onTimeLineYChange, onChange }: Props) {
   const [modal, setModal] = useState<ModalState | null>(null)
   const [viewDetail, setViewDetail] = useState<{ event: TimetableEvent; character: Character } | null>(null)
   const [drag, setDrag] = useState<DragState | null>(null)
   const dragRef = useRef<DragState | null>(null)
-  const [timeLineY, setTimeLineY] = useState<number>(0)
   const timeLineDragging = useRef(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -202,7 +204,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
       const rect = containerRef.current.getBoundingClientRect()
       const raw = ev.clientY - rect.top
       const rowIndex = Math.floor((raw + ROW_H / 2) / ROW_H)
-      setTimeLineY(Math.max(0, Math.min(rowIndex, slots.length - 1)))
+      onTimeLineYChange(Math.max(0, Math.min(rowIndex, slots.length - 1)))
     }
     const upHandler = () => {
       timeLineDragging.current = false
@@ -241,7 +243,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
             return (
               <button
                 key={place.id}
-                onClick={() => setActivePlace(prev => prev === place.id ? null : place.id)}
+                onClick={() => onActivePlaceChange(activePlace === place.id ? null : place.id)}
                 className="flex items-center px-2 py-0.5 rounded-full text-xs font-medium border transition-all"
                 style={{
                   backgroundColor: isActive ? place.color : isChildActive ? `${place.color}30` : 'transparent',
@@ -257,7 +259,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
           })}
           {activePlace && (
             <button
-              onClick={() => setActivePlace(null)}
+              onClick={() => onActivePlaceChange(null)}
               className="text-xs text-gray-400 hover:text-gray-600 px-1"
             >
               ×
