@@ -18,6 +18,7 @@ export default function AdminView({ data, onChange }: Props) {
   const [editingPlace, setEditingPlace] = useState<Place | null>(null)
   const [newPlace, setNewPlace] = useState<Omit<Place, 'id'>>({ name: '', color: randomColor(), parentId: null })
   const [dragOverId, setDragOverId] = useState<string | null>(null)
+  const [dragOverCharId, setDragOverCharId] = useState<string | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [importError, setImportError] = useState<string | null>(null)
@@ -200,7 +201,29 @@ export default function AdminView({ data, onChange }: Props) {
           </div>
 
           {data.characters.map(char => (
-            <div key={char.id} className="border border-gray-200 rounded-xl p-4">
+            <div
+              key={char.id}
+              draggable={!editingChar}
+              onDragStart={e => { e.dataTransfer.setData('charId', char.id) }}
+              onDragOver={e => { e.preventDefault(); setDragOverCharId(char.id) }}
+              onDragLeave={() => setDragOverCharId(null)}
+              onDrop={e => {
+                e.preventDefault()
+                const fromId = e.dataTransfer.getData('charId')
+                if (fromId === char.id) { setDragOverCharId(null); return }
+                const chars = [...data.characters]
+                const fromIdx = chars.findIndex(c => c.id === fromId)
+                const toIdx = chars.findIndex(c => c.id === char.id)
+                const [moved] = chars.splice(fromIdx, 1)
+                chars.splice(toIdx, 0, moved)
+                onChange({ ...data, characters: chars })
+                setDragOverCharId(null)
+              }}
+              onDragEnd={() => setDragOverCharId(null)}
+              className={`border rounded-xl p-4 transition-colors ${
+                dragOverCharId === char.id ? 'border-blue-400 bg-blue-50' : 'border-gray-200'
+              }`}
+            >
               {editingChar?.id === char.id ? (
                 <div className="flex gap-2 flex-wrap">
                   <input
@@ -218,6 +241,7 @@ export default function AdminView({ data, onChange }: Props) {
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
+                  <span className="text-gray-300 cursor-grab text-sm select-none">&#9776;</span>
                   <div className="flex-1">
                     <span className="font-medium text-sm text-gray-800">{char.name}</span>
                     {char.role && <span className="text-gray-400 text-sm ml-2">— {char.role}</span>}
