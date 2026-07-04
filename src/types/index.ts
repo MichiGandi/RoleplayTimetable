@@ -23,6 +23,7 @@ export interface TimetableEvent {
 }
 
 export interface TimetableData {
+  title?: string
   characters: Character[]
   places: Place[]
   events: TimetableEvent[]

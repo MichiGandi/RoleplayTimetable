@@ -31,6 +31,8 @@ export default function App() {
   const [showSlider, setShowSlider] = useState(false)
   const [editingTrackerId, setEditingTrackerId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleDraft, setTitleDraft] = useState('')
 
   const updateData = (partial: Partial<TimetableData>) => {
     setData(prev => ({ ...prev, ...partial }))
@@ -62,7 +64,27 @@ export default function App() {
   return (
     <div className="h-screen flex flex-col bg-white overflow-hidden">
       <header className="border-b border-gray-200 px-3 py-1.5 flex items-center gap-2 flex-shrink-0">
-        <h1 className="text-sm font-semibold text-gray-900 mr-1">RoleplayTimetable</h1>
+        {editingTitle ? (
+          <input
+            autoFocus
+            className="text-sm font-semibold text-gray-900 bg-transparent border-b border-gray-400 outline-none mr-1 w-40"
+            value={titleDraft}
+            onChange={e => setTitleDraft(e.target.value)}
+            onBlur={() => { if (titleDraft.trim()) setData(prev => ({ ...prev, title: titleDraft.trim() })); setEditingTitle(false) }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+              if (e.key === 'Escape') setEditingTitle(false)
+            }}
+          />
+        ) : (
+          <h1
+            className="text-sm font-semibold text-gray-900 mr-1 cursor-default select-none"
+            onDoubleClick={() => { setTitleDraft(data.title ?? 'RoleplayTimetable'); setEditingTitle(true) }}
+            title="Double-click to rename"
+          >
+            {data.title ?? 'RoleplayTimetable'}
+          </h1>
+        )}
 
         {/* Tracker tabs */}
         <div className="flex items-center gap-0.5 overflow-x-auto">
