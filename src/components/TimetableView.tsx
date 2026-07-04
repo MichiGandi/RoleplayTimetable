@@ -74,6 +74,7 @@ function clampDragSlot(
 export default function TimetableView({ characters, events, places, isEditMode, colWidth, activePlace, onActivePlaceChange, timeLineY, onTimeLineYChange, onChange }: Props) {
   const [modal, setModal] = useState<ModalState | null>(null)
   const [viewDetail, setViewDetail] = useState<{ event: TimetableEvent; character: Character } | null>(null)
+  const [viewChar, setViewChar] = useState<Character | null>(null)
   const [drag, setDrag] = useState<DragState | null>(null)
   const dragRef = useRef<DragState | null>(null)
   const timeLineDragging = useRef(false)
@@ -284,7 +285,8 @@ export default function TimetableView({ characters, events, places, isEditMode, 
           {characters.map(char => (
             <div
               key={char.id}
-              className="flex-shrink-0 border-r border-gray-200 flex flex-col items-center justify-center px-0.5 text-center overflow-hidden bg-white"
+              onClick={() => !isEditMode && (char.description || char.role) && setViewChar(char)}
+              className={`flex-shrink-0 border-r border-gray-200 flex flex-col items-center justify-center px-0.5 text-center overflow-hidden bg-white ${!isEditMode && (char.description || char.role) ? 'cursor-pointer hover:bg-gray-50' : ''}`}
               style={{ width: colWidth, minHeight: 56, borderTop: '3px solid #e5e7eb' }}
             >
               <span className="text-[11px] font-semibold text-gray-800 leading-tight">{char.name}</span>
@@ -431,6 +433,33 @@ export default function TimetableView({ characters, events, places, isEditMode, 
         })()}
       </div>
       </div>
+
+      {/* Character detail popup */}
+      {viewChar && !isEditMode && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+          onClick={() => setViewChar(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="h-1.5 bg-gray-200" />
+            <div className="px-5 pt-4 pb-3 border-b border-gray-100 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-base font-semibold text-gray-900 leading-snug">{viewChar.name}</p>
+                {viewChar.role && <p className="text-sm text-gray-500 mt-0.5">{viewChar.role}</p>}
+              </div>
+              <button onClick={() => setViewChar(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none flex-shrink-0 mt-0.5">×</button>
+            </div>
+            {viewChar.description && (
+              <div className="px-5 py-4">
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">{viewChar.description}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* View-mode detail popup */}
       {viewDetail && !isEditMode && (() => {

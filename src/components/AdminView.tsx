@@ -13,7 +13,7 @@ export default function AdminView({ data, onChange }: Props) {
   const [tab, setTab] = useState<AdminTab>('characters')
 
   const [editingChar, setEditingChar] = useState<Character | null>(null)
-  const [newChar, setNewChar] = useState<Omit<Character, 'id'>>({ name: '', role: '' })
+  const [newChar, setNewChar] = useState<Omit<Character, 'id'>>({ name: '', role: '', description: '' })
 
   const [editingPlace, setEditingPlace] = useState<Place | null>(null)
   const [newPlace, setNewPlace] = useState<Omit<Place, 'id'>>({ name: '', color: randomColor(), parentId: null })
@@ -225,19 +225,32 @@ export default function AdminView({ data, onChange }: Props) {
               }`}
             >
               {editingChar?.id === char.id ? (
-                <div className="flex gap-2 flex-wrap">
-                  <input
-                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1 min-w-[140px]"
-                    value={editingChar.name}
-                    onChange={e => setEditingChar({ ...editingChar, name: e.target.value })}
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2 flex-wrap">
+                    <input
+                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1 min-w-[140px]"
+                      placeholder="Name"
+                      value={editingChar.name}
+                      onChange={e => setEditingChar({ ...editingChar, name: e.target.value })}
+                    />
+                    <input
+                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1 min-w-[120px]"
+                      placeholder="Role"
+                      value={editingChar.role}
+                      onChange={e => setEditingChar({ ...editingChar, role: e.target.value })}
+                    />
+                  </div>
+                  <textarea
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-full resize-none focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    placeholder="Description (optional) — shown in detail popup"
+                    rows={3}
+                    value={editingChar.description ?? ''}
+                    onChange={e => setEditingChar({ ...editingChar, description: e.target.value })}
                   />
-                  <input
-                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1 min-w-[120px]"
-                    value={editingChar.role}
-                    onChange={e => setEditingChar({ ...editingChar, role: e.target.value })}
-                  />
-                  <button onClick={() => saveCharacter(editingChar)} className="bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700">Save</button>
-                  <button onClick={() => setEditingChar(null)} className="bg-gray-100 text-gray-600 px-3 py-2 rounded-lg text-sm hover:bg-gray-200">Cancel</button>
+                  <div className="flex gap-2">
+                    <button onClick={() => saveCharacter(editingChar)} className="bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700">Save</button>
+                    <button onClick={() => setEditingChar(null)} className="bg-gray-100 text-gray-600 px-3 py-2 rounded-lg text-sm hover:bg-gray-200">Cancel</button>
+                  </div>
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
