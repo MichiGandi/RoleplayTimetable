@@ -1,3 +1,4 @@
+import ReactMarkdown from 'react-markdown'
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { Character, TimetableEvent, Place, TimetableData } from '../types'
 import { generateTimeSlots, isEventAtTime, timeToMinutes, minutesToTime } from '../utils/time'
@@ -453,8 +454,8 @@ export default function TimetableView({ characters, events, places, isEditMode, 
               <button onClick={() => setViewChar(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none flex-shrink-0 mt-0.5">×</button>
             </div>
             {viewChar.description && (
-              <div className="px-5 py-4">
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{viewChar.description}</p>
+              <div className="px-5 py-4 prose prose-sm max-w-none text-gray-700">
+                <ReactMarkdown>{viewChar.description}</ReactMarkdown>
               </div>
             )}
           </div>
@@ -519,7 +520,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
                 {event.description && (
                   <div className="flex items-start gap-3 pt-1 border-t border-gray-100">
                     <span className="text-xs text-gray-400 w-12 pt-0.5">Notes</span>
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap flex-1">{event.description}</p>
+                    <div className="prose prose-sm max-w-none text-gray-700 flex-1"><ReactMarkdown>{event.description}</ReactMarkdown></div>
                   </div>
                 )}
               </div>
