@@ -11,6 +11,7 @@ export interface Place {
   color: string
   parentId?: string | null
   hiddenInFilter?: boolean
+  shortLabel?: string
 }
 
 export interface TimetableEvent {

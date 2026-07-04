@@ -256,7 +256,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
                   borderStyle: isChild ? 'dashed' : 'solid',
                 }}
               >
-                {place.name}
+                {place.shortLabel ?? place.name}
               </button>
             )
           })}

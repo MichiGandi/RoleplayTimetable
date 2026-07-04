@@ -282,6 +282,13 @@ export default function AdminView({ data, onChange }: Props) {
                 onChange={e => setNewPlace({ ...newPlace, name: e.target.value })}
                 onKeyDown={e => e.key === 'Enter' && addPlace()}
               />
+              <input
+                className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-20"
+                placeholder="Short"
+                value={newPlace.shortLabel ?? ''}
+                onChange={e => setNewPlace({ ...newPlace, shortLabel: e.target.value })}
+                onKeyDown={e => e.key === 'Enter' && addPlace()}
+              />
               <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden h-[38px]">
                 <input
                   type="color"
@@ -350,6 +357,13 @@ export default function AdminView({ data, onChange }: Props) {
                     className="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1"
                     value={editingPlace.name}
                     onChange={e => setEditingPlace({ ...editingPlace, name: e.target.value })}
+                    onKeyDown={e => e.key === 'Enter' && savePlace(editingPlace)}
+                  />
+                  <input
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-20"
+                    placeholder="Short"
+                    value={editingPlace.shortLabel ?? ''}
+                    onChange={e => setEditingPlace({ ...editingPlace, shortLabel: e.target.value })}
                     onKeyDown={e => e.key === 'Enter' && savePlace(editingPlace)}
                   />
                   <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden h-[38px]">
