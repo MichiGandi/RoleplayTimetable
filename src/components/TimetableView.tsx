@@ -76,6 +76,7 @@ export default function TimetableView({ characters, events, places, isEditMode, 
   const [modal, setModal] = useState<ModalState | null>(null)
   const [viewDetail, setViewDetail] = useState<{ event: TimetableEvent; character: Character } | null>(null)
   const [viewChar, setViewChar] = useState<Character | null>(null)
+  const [editChar, setEditChar] = useState<Character | null>(null)
   const [drag, setDrag] = useState<DragState | null>(null)
   const dragRef = useRef<DragState | null>(null)
   const timeLineDragging = useRef(false)
@@ -286,8 +287,8 @@ export default function TimetableView({ characters, events, places, isEditMode, 
           {characters.map(char => (
             <div
               key={char.id}
-              onClick={() => !isEditMode && (char.description || char.role) && setViewChar(char)}
-              className={`flex-shrink-0 border-r border-gray-200 flex flex-col items-center justify-center px-0.5 text-center overflow-hidden bg-white ${!isEditMode && (char.description || char.role) ? 'cursor-pointer hover:bg-gray-50' : ''}`}
+              onClick={() => isEditMode ? setEditChar({...char}) : (char.description || char.role) && setViewChar(char)}
+              className={`flex-shrink-0 border-r border-gray-200 flex flex-col items-center justify-center px-0.5 text-center overflow-hidden bg-white ${isEditMode ? 'cursor-pointer hover:bg-amber-50' : (char.description || char.role) ? 'cursor-pointer hover:bg-gray-50' : ''}`}
               style={{ width: colWidth, minHeight: 56, borderTop: '3px solid #e5e7eb' }}
             >
               <span className="text-[11px] font-semibold text-gray-800 leading-tight">{char.name}</span>
@@ -434,6 +435,65 @@ export default function TimetableView({ characters, events, places, isEditMode, 
         })()}
       </div>
       </div>
+
+      {/* Character edit popup — edit mode */}
+      {editChar && isEditMode && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+          onClick={() => setEditChar(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <p className="text-sm font-semibold text-gray-800">Edit Character</p>
+              <button onClick={() => setEditChar(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Name</label>
+                <input
+                  autoFocus
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  value={editChar.name}
+                  onChange={e => setEditChar({ ...editChar, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Role</label>
+                <input
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  value={editChar.role}
+                  onChange={e => setEditChar({ ...editChar, role: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Description <span className="text-gray-300 font-normal">(Markdown, only shown in detail view)</span></label>
+                <textarea
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"
+                  rows={5}
+                  value={editChar.description ?? ''}
+                  onChange={e => setEditChar({ ...editChar, description: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-2">
+              <button
+                onClick={() => setEditChar(null)}
+                className="px-4 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-100"
+              >Cancel</button>
+              <button
+                onClick={() => {
+                  onChange({ characters: characters.map(c => c.id === editChar.id ? editChar : c) })
+                  setEditChar(null)
+                }}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-700"
+              >Save</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Character detail popup */}
       {viewChar && !isEditMode && (
