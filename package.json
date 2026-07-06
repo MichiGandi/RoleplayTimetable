@@ -6,16 +6,22 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:server": "tsc --project tsconfig.server.json",
+    "build:all": "npm run build && npm run build:server",
+    "start": "node dist-server/server.js",
+    "dev:server": "node --watch dist-server/server.js"
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.20",
+    "express": "^5.2.1",
     "lucide-react": "^1.21.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-markdown": "^10.1.0"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",

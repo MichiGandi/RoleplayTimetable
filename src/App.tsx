@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { TimetableData } from './types'
-import { useLocalStorage } from './hooks/useLocalStorage'
 import { defaultData } from './utils/defaultData'
+import { useServerData } from './hooks/useServerData'
 import TimetableView from './components/TimetableView'
 import AdminView from './components/AdminView'
 import { generateId } from './utils/time'
@@ -15,6 +15,12 @@ interface Tracker {
   timeLineY: number
 }
 
+interface AppData {
+  timetable: TimetableData
+  trackers: Tracker[]
+  activeTrackerId: string
+}
+
 const defaultTracker = (): Tracker => ({
   id: generateId(),
   name: 'View 1',
@@ -22,11 +28,15 @@ const defaultTracker = (): Tracker => ({
   timeLineY: 0,
 })
 
+const defaultAppData: AppData = {
+  timetable: defaultData,
+  trackers: [defaultTracker()],
+  activeTrackerId: '',
+}
+
 export default function App() {
-  const [appView, setAppView] = useState<AppView | null>(null) // null = tracker view
-  const [data, setData] = useLocalStorage<TimetableData>('timetable-data', defaultData)
-  const [trackers, setTrackers] = useLocalStorage<Tracker[]>('rpt-trackers', [defaultTracker()])
-  const [activeTrackerId, setActiveTrackerId] = useLocalStorage<string>('rpt-active-tracker', '')
+  const [appView, setAppView] = useState<AppView | null>(null)
+  const { data: appData, setData: setAppData, loadState } = useServerData<AppData>(defaultAppData)
   const [colWidth, setColWidth] = useState(60)
   const [showSlider, setShowSlider] = useState(false)
   const [editingTrackerId, setEditingTrackerId] = useState<string | null>(null)
@@ -34,21 +44,32 @@ export default function App() {
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState('')
 
-  const updateData = (partial: Partial<TimetableData>) => {
-    setData(prev => ({ ...prev, ...partial }))
-  }
+  const { timetable, trackers, activeTrackerId } = appData
 
   const activeTracker = trackers.find(t => t.id === activeTrackerId) ?? trackers[0]
 
+  const setTimetable = (updater: TimetableData | ((prev: TimetableData) => TimetableData)) => {
+    setAppData(prev => ({
+      ...prev,
+      timetable: typeof updater === 'function' ? updater(prev.timetable) : updater,
+    }))
+  }
+
+  const updateTimetable = (partial: Partial<TimetableData>) => {
+    setTimetable(prev => ({ ...prev, ...partial }))
+  }
+
   const updateTracker = (patch: Partial<Tracker>) => {
-    setTrackers(prev => prev.map(t => t.id === activeTracker.id ? { ...t, ...patch } : t))
+    setAppData(prev => ({
+      ...prev,
+      trackers: prev.trackers.map(t => t.id === activeTracker.id ? { ...t, ...patch } : t),
+    }))
   }
 
   const addTracker = () => {
     const n = trackers.length + 1
     const t = { ...defaultTracker(), name: `View ${n}` }
-    setTrackers(prev => [...prev, t])
-    setActiveTrackerId(t.id)
+    setAppData(prev => ({ ...prev, trackers: [...prev.trackers, t], activeTrackerId: t.id }))
     setAppView(null)
   }
 
@@ -57,20 +78,48 @@ export default function App() {
     const tracker = trackers.find(t => t.id === id)
     if (!confirm(`Delete "${tracker?.name}"?`)) return
     const remaining = trackers.filter(t => t.id !== id)
-    setTrackers(remaining)
-    if (activeTracker.id === id) setActiveTrackerId(remaining[0].id)
+    setAppData(prev => ({
+      ...prev,
+      trackers: remaining,
+      activeTrackerId: activeTracker.id === id ? remaining[0].id : prev.activeTrackerId,
+    }))
+  }
+
+  const setActiveTrackerId = (id: string) => {
+    setAppData(prev => ({ ...prev, activeTrackerId: id }))
+  }
+
+  if (loadState === 'loading') {
+    return (
+      <div className="h-screen flex items-center justify-center text-gray-400 text-sm">
+        Loading…
+      </div>
+    )
+  }
+
+  if (loadState === 'error') {
+    return (
+      <div className="h-screen flex items-center justify-center flex-col gap-2">
+        <p className="text-red-500 font-medium">Could not connect to server</p>
+        <p className="text-gray-400 text-sm">Make sure the backend is running</p>
+      </div>
+    )
   }
 
   return (
     <div className="h-screen flex flex-col bg-white overflow-hidden">
       <header className="border-b border-gray-200 px-3 py-1.5 flex items-center gap-2 flex-shrink-0">
+        {/* Title */}
         {editingTitle ? (
           <input
             autoFocus
             className="text-sm font-semibold text-gray-900 bg-transparent border-b border-gray-400 outline-none mr-1 w-40"
             value={titleDraft}
             onChange={e => setTitleDraft(e.target.value)}
-            onBlur={() => { if (titleDraft.trim()) setData(prev => ({ ...prev, title: titleDraft.trim() })); setEditingTitle(false) }}
+            onBlur={() => {
+              if (titleDraft.trim()) setTimetable(prev => ({ ...prev, title: titleDraft.trim() }))
+              setEditingTitle(false)
+            }}
             onKeyDown={e => {
               if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
               if (e.key === 'Escape') setEditingTitle(false)
@@ -79,10 +128,10 @@ export default function App() {
         ) : (
           <h1
             className="text-sm font-semibold text-gray-900 mr-1 cursor-default select-none"
-            onDoubleClick={() => { setTitleDraft(data.title ?? 'RoleplayTimetable'); setEditingTitle(true) }}
+            onDoubleClick={() => { setTitleDraft(timetable.title ?? 'RoleplayTimetable'); setEditingTitle(true) }}
             title="Double-click to rename"
           >
-            {data.title ?? 'RoleplayTimetable'}
+            {timetable.title ?? 'RoleplayTimetable'}
           </h1>
         )}
 
@@ -104,7 +153,14 @@ export default function App() {
                   value={editingName}
                   onChange={e => setEditingName(e.target.value)}
                   onBlur={() => {
-                    if (editingName.trim()) updateTracker({ name: editingName.trim() })
+                    if (editingName.trim()) {
+                      setAppData(prev => ({
+                        ...prev,
+                        trackers: prev.trackers.map(t =>
+                          t.id === tracker.id ? { ...t, name: editingName.trim() } : t
+                        ),
+                      }))
+                    }
                     setEditingTrackerId(null)
                   }}
                   onKeyDown={e => {
@@ -176,7 +232,7 @@ export default function App() {
           )}
           {appView === 'admin' && (
             <span className="text-xs text-gray-400">
-              {data.characters.length} characters · {data.places.length} places · {data.events.length} events
+              {timetable.characters.length} characters · {timetable.places.length} places · {timetable.events.length} events
             </span>
           )}
         </div>
@@ -184,19 +240,19 @@ export default function App() {
 
       <main className={appView === 'admin' ? 'flex-1 overflow-auto' : 'flex-1 overflow-hidden flex flex-col'}>
         {appView === 'admin' ? (
-          <AdminView data={data} onChange={setData} />
+          <AdminView data={timetable} onChange={setTimetable} />
         ) : (
           <TimetableView
-            characters={data.characters}
-            events={data.events}
-            places={data.places}
+            characters={timetable.characters}
+            events={timetable.events}
+            places={timetable.places}
             isEditMode={appView === 'edit'}
             colWidth={colWidth}
             activePlace={activeTracker?.activePlace ?? null}
             onActivePlaceChange={place => updateTracker({ activePlace: place })}
             timeLineY={activeTracker?.timeLineY ?? 0}
             onTimeLineYChange={y => updateTracker({ timeLineY: y })}
-            onChange={updateData}
+            onChange={updateTimetable}
           />
         )}
       </main>
